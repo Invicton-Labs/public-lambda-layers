@@ -128,18 +128,18 @@ module "docker_build" {
     local.arch_lookup
   ]
   // Trigger a rebuild if any of the parameters change
-  triggers                  = each.value
-  timeout_create            = 900
+  triggers       = each.value
+  timeout_create = 900
   environment = {
-    IL_BUILDER_NAME = local.builder_name
+    IL_BUILDER_NAME       = local.builder_name
     IL_BUILD_ARCHITECTURE = local.arch_lookup[each.value.architecture]
-    IL_IMAGE_TAG = each.value.image_tag
-    IL_DOCKERFILE_NAME = each.value.dockerfile_name
-    IL_CONTAINER_NAME = each.key
+    IL_IMAGE_TAG          = each.value.image_tag
+    IL_DOCKERFILE_NAME    = each.value.dockerfile_name
+    IL_CONTAINER_NAME     = each.key
   }
-  command_unix              = "bash ../docker-build.sh"
-  command_windows           = "powershell.exe -file ..\\docker-build.ps1"
-  working_dir               = module.create_builder.exit_code == 0 ? local.tmp_dir : null
+  command_unix    = "bash ../docker-build.sh"
+  command_windows = "powershell.exe -file ..\\docker-build.ps1"
+  working_dir     = module.create_builder.exit_code == 0 ? local.tmp_dir : null
 }
 
 module "package_hash_keeper" {
@@ -169,7 +169,7 @@ locals {
     k => merge(v, {
       package_md5          = module.package_hash_keeper[k].output.md5
       package_base64sha256 = module.package_hash_keeper[k].output.base64sha256
-      last_updated_unix = time_static.last_updated[k].unix
+      last_updated_unix    = time_static.last_updated[k].unix
       last_updated_rfc3339 = time_static.last_updated[k].rfc3339
     })
   }
