@@ -1,0 +1,109 @@
+name: "CICD"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  terraform:
+    name: "Terraform"
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      # Checkout this repository
+      - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
+        uses: actions/checkout@v2
+
+      # Install Terraform
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      # Ensure the Terraform config is properly formatted
+      - name: Terraform Format
+        id: fmt
+        working-directory: terraform
+        run: terraform fmt -check
+
+      # Initialize Terraform
+      - name: Terraform Init
+        id: init
+        working-directory: terraform
+        run: terraform init -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}"
+
+      # Validate the Terraform config
+      - name: Terraform Validate
+        id: validate
+        working-directory: terraform
+        run: terraform validate -no-color
+
+      # Run the plan, and continue on error so we can output the plan error if it fails
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        working-directory: terraform
+        run: terraform plan -no-color
+        continue-on-error: true
+
+      # If it's a PR, update the PR with the plan output
+      - name: Update Pull Request
+        uses: actions/github-script@0.9.0
+        if: github.event_name == 'pull_request'
+        working-directory: terraform
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+      
+      # Show the plan status
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        working-directory: terraform
+        run: exit 1
+
+      # Run the apply
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: terraform
+        run: terraform apply -auto-approve 
+
+      # Prettify the JSON output
+      - name: Create Layer JSON Output
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: terraform
+        run: jq . tmpfiles/layers.json > ../layers.json
+  
+      # Publish the new layers.json file
+      - name: Commit Layer JSON file
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          git config --global user.name 'Invicton Labs Bot'
+          git config --global user.email 'kotowick@invictonlabs.com'
+          git add layers.json
+          git commit -m "Publish new layers.json file"
+          git push

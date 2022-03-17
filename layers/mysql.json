@@ -1,0 +1,40 @@
+{
+    "source_directory": "/layer",
+    "default_architectures": [
+        "x86_64",
+        "arm64"
+    ],
+    "common_instructions": [
+        "RUN python -m pip install --upgrade pip"
+    ],
+    "versions": {
+        "8.0.28": {
+            "common_instructions": [
+                "WORKDIR /layer",
+                "RUN pip install mysql-connector-python==8.0.28 --target . && pip freeze --path . > requirements.txt"
+            ],
+            "runtimes": {
+                "python3.6": {
+                    "image": "public.ecr.aws/lambda/python:3.6",
+                    "destination_directory": "/python/lib/python3.6/site-packages",
+                    "instructions": []
+                },
+                "python3.7": {
+                    "image": "public.ecr.aws/lambda/python:3.7",
+                    "destination_directory": "/python/lib/python3.7/site-packages",
+                    "instructions": []
+                },
+                "python3.8": {
+                    "image": "public.ecr.aws/lambda/python:3.8",
+                    "destination_directory": "/python/lib/python3.8/site-packages",
+                    "instructions": []
+                },
+                "python3.9": {
+                    "image": "public.ecr.aws/lambda/python:3.9",
+                    "destination_directory": "/python/lib/python3.9/site-packages",
+                    "instructions": []
+                }
+            }
+        }
+    }
+}
