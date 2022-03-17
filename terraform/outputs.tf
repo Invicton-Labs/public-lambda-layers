@@ -63,7 +63,7 @@ locals {
       }
     }
   }
-  
+
   package_version_runtime_architecture_layers = {
     for package, version_runtime_layers in local.package_version_runtime_layers :
     package => {
@@ -80,6 +80,7 @@ locals {
           }
         }
       }
+    }
   }
 }
 
