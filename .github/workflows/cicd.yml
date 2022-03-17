@@ -52,7 +52,6 @@ jobs:
       - name: Update Pull Request
         uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request'
-        working-directory: terraform
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
