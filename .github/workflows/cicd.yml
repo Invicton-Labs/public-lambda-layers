@@ -21,9 +21,13 @@ jobs:
         uses: actions/checkout@v2
 
       # Make the tmpfiles directory
-      - name: Create tmpfiles directory
+      - name: Preparation
+        id: preparation
         working-directory: terraform
-        run: mkdir tmpfiles
+        run: |
+          mkdir tmpfiles
+          cd tmpfiles
+          echo '::set-output name=tmpfile_dir::$(pwd)'
 
       # Install Terraform
       - name: Install Terraform
@@ -50,7 +54,7 @@ jobs:
         if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
         working-directory: terraform
         # Use a detailed exit code for issue comments
-        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan
+        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50
         continue-on-error: true
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
@@ -59,18 +63,11 @@ jobs:
         # If there's anything in the plan, the plan step will fail because the exit code 
         if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 2
         working-directory: terraform
-        run: terraform show -no-color tmpfiles/tfplan
+        run: terraform show -no-color tmpfiles/tfplan > tmpfiles/plan.stdout 2> tmpfiles/plan.stderr
 
       - name: Outputs
         run: |
-          echo "fmt outcome: ${{ steps.fmt.outcome }}"
-          echo "fmt stdout: ${{ steps.fmt.outputs.stdout }}"
-          echo "fmt stderr: ${{ steps.fmt.outputs.stderr }}"
-          echo "fmt exitcode: ${{ steps.fmt.outputs.exitcode }}"
-          echo "init outcome: ${{ steps.init.outcome }}"
-          echo "init stdout: ${{ steps.init.outputs.stdout }}"
-          echo "init stderr: ${{ steps.init.outputs.stderr }}"
-          echo "init exitcode: ${{ steps.init.outputs.exitcode }}"
+          echo "tmpfile dir: ${{ steps.preparation.outputs.tmpfile_dir }}"
           echo "plan outcome: ${{ steps.plan.outcome }}"
           echo "plan stdout: ${{ steps.plan.outputs.stdout }}"
           echo "plan stderr: ${{ steps.plan.outputs.stderr }}"
@@ -90,15 +87,16 @@ jobs:
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; }
             if ("${{ steps.plan.outcome }}" != "skipped") {
+              let reader = new FileReaderSync();
               switch ("${{ steps.plan.outputs.exitcode }}") {
                 case "0":
                   plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
                 case "1":
                   plan_status = "failure";
-                  output_details += `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n${{ steps.plan.outputs.stderr }}\n\`\`\`\n</details>`; break;
+                  output_details += `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n` + reader.ReadAsText("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr") + `\n\`\`\`\n</details>`; break;
                 case "2":
                   plan_status = "success"; 
-                  output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${{ steps.read-plan.outputs.stdout }}\n\`\`\`\n</details>`; break;
+                  output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + reader.ReadAsText("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout") + `\n\`\`\`\n</details>`; break;
                 default:
                   throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
               }
