@@ -1,10 +1,12 @@
-name: "CICD"
-
 on:
   push:
     branches:
       - main
   pull_request:
+
+# Always limit to a single concurrency to ensure that all plans/applys have the most recent state
+concurrency: 
+  group: single-concurrency
 
 jobs:
   terraform:
@@ -47,8 +49,8 @@ jobs:
         # Only run the plan if it's a PR and the init succeeded
         if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
         working-directory: terraform
-        # Use a detailed exit code for issue comments. Don't lock, so we can run multiple PR workflows at once
-        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan -lock=false
+        # Use a detailed exit code for issue comments
+        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan
         continue-on-error: true
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
