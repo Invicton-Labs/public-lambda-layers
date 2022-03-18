@@ -20,26 +20,6 @@ jobs:
       - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
         uses: actions/checkout@v2
 
-        
-      # Update Gist
-      - name: Update Layers Gist1
-        uses: actions/github-script@0.9.0
-        with:
-          github-token: ${{ secrets.GIST_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const layer_json = '{"a":"1","b":2}';
-            const gist_resp = await github.gists.update({
-              gist_id: "173707592654d5a9e37b2f4f7cd51481",
-              description: "${{ github.repository }} Layers - ${{ github.ref }}",
-              files: {
-                "layers.json": {
-                  content: JSON.stringify(JSON.parse(layer_json), null, 2),
-                }
-              },
-            });
-
-
       # Make the tmpfiles directory
       - name: Preparation
         id: preparation
