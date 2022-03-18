@@ -47,7 +47,7 @@ jobs:
         # Only run the plan if it's a PR and the init succeeded
         if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
         working-directory: terraform
-        run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan
+        run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -lock=false
         continue-on-error: true
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
@@ -123,19 +123,19 @@ jobs:
 
       # Run the apply
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == 2
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: terraform
         run: terraform apply -auto-approve 
 
       # Prettify the JSON output
       - name: Create Layer JSON Output
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == 2
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: terraform
         run: jq . tmpfiles/layers.json > ../layers.json
   
       # Publish the new layers.json file
       - name: Commit Layer JSON file
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == 2
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'kotowick@invictonlabs.com'
