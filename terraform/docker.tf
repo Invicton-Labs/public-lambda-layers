@@ -35,8 +35,8 @@ locals {
             [
               "FROM ${runtime_config.image} AS build_image",
             ],
-            layer_config.common_instructions,
-            version_config.common_instructions,
+            layer_config.common_instructions_pre,
+            version_config.common_instructions_pre,
             runtime_config.instructions,
             [
               "FROM alpine:latest",
@@ -47,7 +47,9 @@ locals {
               // of the contained files remain the same
               "WORKDIR /layer",
               "RUN TZ=UTC zip -r -o -X /package.zip ./*"
-            ]
+            ],
+            version_config.common_instructions_post,
+            layer_config.common_instructions_post,
           )), "\r", ""), "\r\n", "")
         }
       }
@@ -118,7 +120,7 @@ module "create_dockerfiles" {
 // Build the Docker containers that we will pull the layer files from
 module "docker_build" {
   source   = "Invicton-Labs/shell-resource/external"
-  version  = "~>0.3.0"
+  version  = "~>0.3.1"
   for_each = local.docker_images
   depends_on = [
     module.create_builder,

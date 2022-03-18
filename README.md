@@ -12,6 +12,11 @@ For a complete listing of layers that are currently maintained, check this file.
 ### [Layers List](https://gist.githubusercontent.com/KyleKotowick/173707592654d5a9e37b2f4f7cd51481/raw/6f59d30320261f8114ea56ef729f6c8bc3af750d/layers.json)
 
 
+## Testing
+
+The contents of these layers have not been thoroughly tested. If any of the packages fail to load for your Lambdas, please create an issue and, preferrably, a pull request if you know of the solution.
+
+
 ## Legal
 
 Invicton Labs makes no claim to ownership or copyright of any layer contents that were pulled from an external source (e.g. PyPI). All layer content is licensed under the license of the original external content.

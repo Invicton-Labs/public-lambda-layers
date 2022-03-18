@@ -44,7 +44,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: terraform
-        run: terraform init -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
+        run: terraform init -reconfigure -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
         continue-on-error: true
 
       # Remove the wrapper from Terraform so we don't get debug output when we direct to a file
@@ -57,12 +57,12 @@ jobs:
       - name: Terraform Plan
         id: plan
         # Only run the plan if it's a PR and the init succeeded
-        if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
+        if: steps.init.outcome == 'success'
         working-directory: terraform
         # We store the stderr to a file that we can read later, and the exitcode to an output
         run: |
           set +e
-          terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50 2> tmpfiles/plan.stderr
+          terraform plan -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50 2> tmpfiles/plan.stderr
           echo "::set-output name=exitcode::$?"
           set -e
 
@@ -212,11 +212,19 @@ jobs:
         working-directory: terraform
         run: exit 1
 
-      # Run the apply
+      # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
+      - name: Read Plan
+        id: read-plan
+        # If there's anything in the plan, the plan step will fail because the exit code 
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: terraform
+        run: terraform show tmpfiles/tfplan
+
+      # Run the apply, using the plan file that was previously generated
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: terraform
-        run: terraform apply -auto-approve -parallelism=50
+        run: terraform apply -auto-approve -parallelism=50 tmpfiles/tfplan
 
       # Update Gist
       - name: Update Layers Gist
