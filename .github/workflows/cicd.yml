@@ -93,7 +93,7 @@ jobs:
                 });
 
               case "1":
-                const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'});
+                const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'}).trim();
                 if (plan_stderr.length > 20000) {
                   const gist_resp = await github.gists.create({
                     description: "Terraform Plan error output for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
@@ -120,7 +120,7 @@ jobs:
                 break;
                 
               case "2":
-                const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'});
+                const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'}).trim();
                 if (plan_stdout.length > 10000) {
                   const gist_resp = await github.gists.create({
                     description: "Terraform Plan for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
@@ -156,16 +156,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { 
-              output_details += `
-              <details>
-              <summary>Show Improperly Formatted Files</summary>
-              
-              \`\`\`
-              ${{ steps.fmt.outputs.stdout }}\`\`\`
-              </details>`; 
+              output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`${{ steps.fmt.outputs.stdout }}\`\`\`</details>`; 
             }
             if ("${{ steps.plan.outcome }}" != "skipped") {
               const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '""') || steps.process-plan.outputs.result }});
@@ -180,28 +173,14 @@ jobs:
                 if (gist_results.gist_url != null) {
                   output_details += `\n\n[Terraform Plan Errors](` + gist_results.gist_url + `)`;
                 } else {
-                  output_details += `
-                  <details>
-                  <summary>Show Plan Errors</summary>
-                  
-                  \`\`\`terraform
-                  ` + gist_results.output + `
-                  \`\`\`
-                  </details>`;
+                  output_details += `<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n` + gist_results.output + `\n\`\`\`\n</details>`;
                 }
               } else {
                 plan_status = "success"; 
                 if (gist_results.gist_url != null) {
                   output_details += `\n\n[Terraform Plan](` + gist_results.gist_url + `)`;
                 } else {
-                  output_details += `
-                  <details>
-                  <summary>Show Plan</summary>
-                    
-                  \`\`\`terraform
-                  ` + gist_results.output + `
-                  \`\`\`
-                  </details>`;
+                  output_details += `<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + gist_results.output + `\n\`\`\`\n</details>`;
                 }
               }
             }
