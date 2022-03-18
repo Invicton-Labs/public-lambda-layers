@@ -86,6 +86,8 @@ module "create_builder" {
     module.naming_validation
   ]
   command_unix              = <<EOF
+set -e
+docker run --privileged --rm tonistiigi/binfmt --install all
 set +e
 docker buildx inspect --bootstrap "$BUILDER_NAME" > /dev/null 2>&1
 if ! [ $? -eq 0 ]; then
@@ -94,6 +96,8 @@ if ! [ $? -eq 0 ]; then
 fi
 EOF
   command_windows           = <<EOF
+$ErrorActionPreference = "Stop"
+docker run --privileged --rm tonistiigi/binfmt --install all
 $ErrorActionPreference = "Continue"
 docker buildx inspect --bootstrap "$Env:BUILDER_NAME" | Out-Null
 if (!$?) {
