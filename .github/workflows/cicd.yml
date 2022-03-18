@@ -84,11 +84,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             var plan_status = "skipped", output_details = "";
-            if ("${{ steps.fmt.outcome }}" == "failure") { output_details += "<details><summary>Show Improperly Formatted Files</summary>\`\`\`\n${{ steps.fmt.outputs.stdout }}\n\`\`\`"; }
+            if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\`\`\`\n${{ steps.fmt.outputs.stdout }}\n\`\`\``; }
             if ("${{ steps.plan.outcome }}" != "skipped") {
               switch ("${{ steps.plan.outputs.exitcode }}") {
                 case "0":
-                  plan_status = "success"; output_details += "\n\n**No changes required.**"; break;
+                  plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
                 case "1":
                   plan_status = "failure";
                   output_details = `\n\n<details><summary>Show Plan Errors</summary>
