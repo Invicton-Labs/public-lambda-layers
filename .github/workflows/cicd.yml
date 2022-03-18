@@ -159,17 +159,18 @@ jobs:
             const fs = require('fs');
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { 
-              output_details += `<details>
-                <summary>Show Improperly Formatted Files</summary>
-                
-                \`\`\`
-                ${{ steps.fmt.outputs.stdout }}\`\`\`
+              output_details += `
+              <details>
+              <summary>Show Improperly Formatted Files</summary>
+              
+              \`\`\`
+              ${{ steps.fmt.outputs.stdout }}\`\`\`
               </details>`; 
             }
             if ("${{ steps.plan.outcome }}" != "skipped") {
               const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '""') || steps.process-plan.outputs.result }});
               if (output_details.length > 0) {
-                output_details += `\n\n`;
+                output_details += `\n`;
               }
               if (gist_results.no_plan) {
                 plan_status = "success"; 
@@ -179,13 +180,13 @@ jobs:
                 if (gist_results.gist_url != null) {
                   output_details += `\n\n[Terraform Plan Errors](` + gist_results.gist_url + `)`;
                 } else {
-                  output_details += `\n
+                  output_details += `
                   <details>
-                    <summary>Show Plan Errors</summary>
-                    
-                    \`\`\`terraform
-                    ` + gist_results.output + `
-                    \`\`\`
+                  <summary>Show Plan Errors</summary>
+                  
+                  \`\`\`terraform
+                  ` + gist_results.output + `
+                  \`\`\`
                   </details>`;
                 }
               } else {
@@ -193,13 +194,13 @@ jobs:
                 if (gist_results.gist_url != null) {
                   output_details += `\n\n[Terraform Plan](` + gist_results.gist_url + `)`;
                 } else {
-                  output_details += `\n
+                  output_details += `
                   <details>
-                    <summary>Show Plan</summary>
+                  <summary>Show Plan</summary>
                     
-                    \`\`\`terraform
-                    ` + gist_results.output + `
-                    \`\`\`
+                  \`\`\`terraform
+                  ` + gist_results.output + `
+                  \`\`\`
                   </details>`;
                 }
               }
