@@ -57,7 +57,7 @@ jobs:
         run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50
         continue-on-error: true
         
-      # Install Terraform
+      # Remove the wrapper from Terraform so we don't get debug output when we direct to a file
       - name: Remove Terraform Wrapper
         uses: hashicorp/setup-terraform@v1
         with:
@@ -164,7 +164,7 @@ jobs:
               </details>`; 
             }
             if ("${{ steps.plan.outcome }}" != "skipped") {
-              const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '0') || steps.process-plan.outputs.result }});
+              const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '""') || steps.process-plan.outputs.result }});
               if (output_details.length > 0) {
                 output_details += `\n\n`;
               }
@@ -211,7 +211,13 @@ jobs:
             github.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output })
       
       
-      # If the plan failed, fail the workflow
+      # If the init failed, fail the workflow
+      - name: Terraform Init Failure
+        if: steps.init.outputs.exitcode != 0
+        working-directory: terraform
+        run: exit 1
+      
+      # If the format failed, fail the workflow
       - name: Terraform Format Failure
         if: steps.fmt.outputs.exitcode != 0
         working-directory: terraform
