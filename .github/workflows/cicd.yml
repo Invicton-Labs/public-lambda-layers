@@ -101,7 +101,9 @@ jobs:
                     description: "Terraform Plan error output for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
                     public: true,
                     files: {
-                      "plan-error.txt": plan_stderr,
+                      "plan-error.txt": {
+                        content: plan_stderr,
+                      }
                     },
                   });
                   return {
@@ -126,7 +128,9 @@ jobs:
                     description: "Terraform Plan for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
                     public: true,
                     files: {
-                      "plan.txt": plan_stdout,
+                      "plan.txt": {
+                        content: plan_stdout,
+                      },
                     },
                   });
                   return {
