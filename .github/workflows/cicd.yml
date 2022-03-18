@@ -56,6 +56,12 @@ jobs:
         # Use a detailed exit code for issue comments
         run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50
         continue-on-error: true
+        
+      # Install Terraform
+      - name: Remove Terraform Wrapper
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan
@@ -65,20 +71,9 @@ jobs:
         working-directory: terraform
         run: terraform show -no-color tmpfiles/tfplan > tmpfiles/plan.stdout 2> tmpfiles/plan.stderr
 
-      - name: Outputs
-        run: |
-          echo "tmpfile dir: ${{ steps.preparation.outputs.tmpfile_dir }}"
-          echo "plan outcome: ${{ steps.plan.outcome }}"
-          echo "plan stdout: ${{ steps.plan.outputs.stdout }}"
-          echo "plan stderr: ${{ steps.plan.outputs.stderr }}"
-          echo "plan exitcode: ${{ steps.plan.outputs.exitcode }}"
-          echo "read-plan outcome: ${{ steps.read-plan.outcome }}"
-          echo "read-plan stdout: ${{ steps.read-plan.outputs.stdout }}"
-          echo "read-plan stderr: ${{ steps.read-plan.outputs.stderr }}"
-          echo "read-plan exitcode: ${{ steps.read-plan.outputs.exitcode }}"
-
-      - name: Create Gists
-        id: create-gists
+      # Process the plan output and create Gists if necessary
+      - name: Process Plan
+        id: process-plan
         uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request' && steps.plan.outcome != 'skipped'
         with:
@@ -169,7 +164,7 @@ jobs:
               </details>`; 
             }
             if ("${{ steps.plan.outcome }}" != "skipped") {
-              const gist_results = JSON.parse(${{steps.create-gists.outputs.result}});
+              const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '0') || steps.process-plan.outputs.result }});
               if (output_details.length > 0) {
                 output_details += `\n\n`;
               }
@@ -181,14 +176,28 @@ jobs:
                 if (gist_results.gist_url != null) {
                   output_details += `\n\n[Terraform Plan Errors](` + gist_results.gist_url + `)`;
                 } else {
-                  output_details += `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n` + gist_results.output + `\n\`\`\`\n</details>`; break;
+                  output_details += `\n
+                  <details>
+                    <summary>Show Plan Errors</summary>
+                    
+                    \`\`\`terraform
+                    ` + gist_results.output + `
+                    \`\`\`
+                  </details>`;
                 }
               } else {
                 plan_status = "success"; 
                 if (gist_results.gist_url != null) {
                   output_details += `\n\n[Terraform Plan](` + gist_results.gist_url + `)`;
                 } else {
-                  output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + gist_results.output + `\n\`\`\`\n</details>`; break;
+                  output_details += `\n
+                  <details>
+                    <summary>Show Plan</summary>
+                    
+                    \`\`\`terraform
+                    ` + gist_results.output + `
+                    \`\`\`
+                  </details>`;
                 }
               }
             }
@@ -218,7 +227,7 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: terraform
-        run: terraform apply -auto-approve 
+        run: terraform apply -auto-approve -parallelism=50
 
       # Prettify the JSON output
       - name: Create Layer JSON Output
