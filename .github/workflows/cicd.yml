@@ -158,12 +158,12 @@ jobs:
           script: |
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { 
-              output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`${{ steps.fmt.outputs.stdout }}\`\`\`</details>`; 
+              output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; 
             }
             if ("${{ steps.plan.outcome }}" != "skipped") {
               const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '""') || steps.process-plan.outputs.result }});
               if (output_details.length > 0) {
-                output_details += `\n`;
+                output_details += `\n\n`;
               }
               if (gist_results.no_plan) {
                 plan_status = "success"; 
