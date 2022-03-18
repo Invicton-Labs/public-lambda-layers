@@ -38,7 +38,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: terraform
-        run: terraform inits -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
+        run: terraform init -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
         continue-on-error: true
 
       # Run the plan, and continue on error so we can output the plan error if it fails
@@ -84,7 +84,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             var plan_status = "skipped", output_details = "";
-            if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\n\`\`\`\n</details>`; }
+            if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; }
             if ("${{ steps.plan.outcome }}" != "skipped") {
               switch ("${{ steps.plan.outputs.exitcode }}") {
                 case "0":
@@ -106,14 +106,13 @@ jobs:
                   throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
               }
             }
-            var output = `**Pusher:** @${{ github.actor }}
-            **Action:** \`${{ github.event_name }}\`
+            var output = `**Author:** @${{ github.actor }}
             **Workflow Run:** [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})
             | Task | Result |
             | ---- | ------ |
-            | 🖌 **Terraform Format and Style:** | \`${{ steps.fmt.outcome }}\` |
-            | ⚙️ **Terraform Initialization:** | \`${{ steps.init.outcome }}\` |
-            | 📖 **Terraform Plan:** | \`` + plan_status + `\` |\n\n` + output_details;
+            | 🖌 **Terraform Format and Style:** | ` + ("${{ steps.fmt.outcome }}" == "failure" ? "❌" : ("${{ steps.fmt.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.fmt.outcome }}\` |
+            | ⚙️ **Terraform Initialization:** | ` + ("${{ steps.init.outcome }}" == "failure" ? "❌" : ("${{ steps.init.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.init.outcome }}\` |
+            | 📖 **Terraform Plan:** | ` + (plan_status == "failure" ? "❌" : (plan_status == "skipped" ? "⏭" : "✅")) + `\`` + plan_status + `\` |\n\n` + output_details;
             github.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output })
       
       
