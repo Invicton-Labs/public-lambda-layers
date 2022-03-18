@@ -17,7 +17,7 @@ output "layers" {
     for k, v in aws_lambda_layer_version.lambda_layers :
     k => merge(var.packages[k], {
       lambda_layer_version_resource = v
-      region = data.aws_region.current.name
+      region                        = data.aws_region.current.name
     })
   }
 }

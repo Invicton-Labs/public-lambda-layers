@@ -6,8 +6,8 @@ resource "aws_s3_object" "packages" {
   source                 = each.value.package_file
   source_hash            = each.value.package_md5
   server_side_encryption = "AES256"
-  metadata = {}
-  tags = {}
+  metadata               = {}
+  tags                   = {}
 }
 
 resource "aws_lambda_layer_version" "lambda_layers" {
@@ -54,5 +54,5 @@ module "apply_layer_permissions" {
 
   // Cause Terraform to fail if the function throws an error when creating the resource
   fail_on_nonzero_exit_code = true
-  fail_on_stderr = true
+  fail_on_stderr            = true
 }
