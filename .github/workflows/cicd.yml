@@ -47,21 +47,24 @@ jobs:
         run: terraform init -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
         continue-on-error: true
 
+      # Remove the wrapper from Terraform so we don't get debug output when we direct to a file
+      - name: Remove Terraform Wrapper
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+
       # Run the plan, and continue on error so we can output the plan error if it fails
       - name: Terraform Plan
         id: plan
         # Only run the plan if it's a PR and the init succeeded
         if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
         working-directory: terraform
-        # Use a detailed exit code for issue comments
-        run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50
-        continue-on-error: true
-        
-      # Remove the wrapper from Terraform so we don't get debug output when we direct to a file
-      - name: Remove Terraform Wrapper
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_wrapper: false
+        # We store the stderr to a file that we can read later, and the exitcode to an output
+        run: |
+          set +e
+          terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50 2> tmpfiles/plan.stderr
+          echo "::set-output name=exitcode::$($?)"
+          set -e
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan
@@ -69,7 +72,7 @@ jobs:
         # If there's anything in the plan, the plan step will fail because the exit code 
         if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 2
         working-directory: terraform
-        run: terraform show -no-color tmpfiles/tfplan > tmpfiles/plan.stdout 2> tmpfiles/plan.stderr
+        run: terraform show -no-color tmpfiles/tfplan > tmpfiles/plan.stdout
 
       # Process the plan output and create Gists if necessary
       - name: Process Plan
