@@ -50,7 +50,7 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         working-directory: terraform
-        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan
+        run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan
         continue-on-error: true
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
