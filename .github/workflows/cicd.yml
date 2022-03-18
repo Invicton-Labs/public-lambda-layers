@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir tmpfiles
           cd tmpfiles
-          echo '::set-output name=tmpfile_dir::$(pwd)'
+          echo "::set-output name=tmpfile_dir::$(pwd)"
 
       # Install Terraform
       - name: Install Terraform
@@ -54,7 +54,7 @@ jobs:
         if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
         working-directory: terraform
         # Use a detailed exit code for issue comments
-        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50
+        run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50
         continue-on-error: true
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
@@ -84,6 +84,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            function readFileAsync(file) { return new Promise((resolve, reject) => { let reader = new FileReader(); reader.onload = () => {resolve(reader.result);}; reader.onerror = reject; reader.readAsText(file); }) }
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; }
             if ("${{ steps.plan.outcome }}" != "skipped") {
@@ -93,10 +94,10 @@ jobs:
                   plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
                 case "1":
                   plan_status = "failure";
-                  output_details += `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n` + reader.ReadAsText("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr") + `\n\`\`\`\n</details>`; break;
+                  output_details += `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n` + (await readFileAsync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr")) + `\n\`\`\`\n</details>`; break;
                 case "2":
                   plan_status = "success"; 
-                  output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + reader.ReadAsText("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout") + `\n\`\`\`\n</details>`; break;
+                  output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + (await readFileAsync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout")) + `\n\`\`\`\n</details>`; break;
                 default:
                   throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
               }
