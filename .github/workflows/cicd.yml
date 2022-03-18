@@ -91,7 +91,7 @@ jobs:
                   plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
                 case "1":
                   plan_status = "failure";
-                  output_details = `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n${{ steps.plan.outputs.stderr }}\n\`\`\`\n</details>`; break;
+                  output_details += `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n${{ steps.plan.outputs.stderr }}\n\`\`\`\n</details>`; break;
                 case "2":
                   plan_status = "success"; 
                   output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${{ steps.read-plan.outputs.stdout }}\n\`\`\`\n</details>`; break;
