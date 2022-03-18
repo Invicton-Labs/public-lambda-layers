@@ -53,40 +53,37 @@ jobs:
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan
         id: read-plan
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 0
         working-directory: terraform
-        run: if [ ${{ steps.plan.outputs.exitcode }} == 2 ]; then terraform show tmpfiles/tfplan ; fi
+        run: terraform show tmpfiles/tfplan
 
       # If it's a PR, update the PR with the plan output
       - name: Update Pull Request
         uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request'
-        env:
-          PLAN: "${{ steps.plan.outputs.stdout }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            var plan_status, output_details;
-            switch (${{ steps.plan.outputs.exitcode }}) {
-              case 0:
-                plan_status = "success"; output_details = "**No changes required.**"; break;
-              case 1:
-                plan_status = "failure";
-                output_details = `
-                  <details><summary>Show Plan Errors</summary>
-                    \`\`\`terraform\n
-                    ${{ steps.plan.outputs.stderr }}
-                    \`\`\`
-                  </details>
-                `; break;
-              case 2:
-                plan_status = "success"; output_details = `
-                  <details><summary>Show Plan</summary>
-                    \`\`\`terraform\n
-                    ${{ steps.read-plan.outputs.stdout }}
-                    \`\`\`
-                  </details>
-                `; break;
+            var plan_status = "not attempted", output_details = "";
+            if (${{ steps.fmt.outputs.exitcode }} != 0) { output_details += "<details><summary>Show Improperly Formatted Files</summary>\`\`\`\n${{ steps.fmt.outputs.stderr }}\n\`\`\`"; }
+            if ("${{ steps.plan.outputs.exitcode }}" != "") {
+              switch (${{ steps.plan.outputs.exitcode }}) {
+                case 0:
+                  plan_status = "success"; output_details += "\n\n**No changes required.**"; break;
+                case 1:
+                  plan_status = "failure";
+                  output_details = `\n\n<details><summary>Show Plan Errors</summary>
+                      \`\`\`terraform\n
+                      ${{ steps.plan.outputs.stderr }}
+                      \`\`\`
+                    </details>`; break;
+                case 2:
+                  plan_status = "success"; output_details += `\n\n<details><summary>Show Plan</summary>
+                      \`\`\`terraform\n
+                      ${{ steps.read-plan.outputs.stdout }}
+                      \`\`\`
+                    </details>`; break;
+              }
             }
             var output = `**Pusher:** @${{ github.actor }}
             **Action:** \`${{ github.event_name }}\`
@@ -94,12 +91,7 @@ jobs:
             #### 🖌 Terraform Format and Style: \`${{ steps.fmt.outcome }}\`
             #### ⚙️ Terraform Initialization: \`${{ steps.init.outcome }}\`
             #### 📖 Terraform Plan: \`` + plan_status + `\`\n\n` + output_details;
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
+            github.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output })
       
       
       # If the plan failed, fail the workflow
