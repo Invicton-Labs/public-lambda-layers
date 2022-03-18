@@ -47,7 +47,7 @@ jobs:
         # Only run the plan if it's a PR and the init succeeded
         if: github.event_name == 'pull_request' && steps.init.outcome == 'success'
         working-directory: terraform
-        # Use a detailed exit code for issue comments. Don't lock, so we can run multiple workflows at once
+        # Use a detailed exit code for issue comments. Don't lock, so we can run multiple PR workflows at once
         run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan -lock=false
         continue-on-error: true
 
@@ -104,7 +104,7 @@ jobs:
             **Workflow Run:** [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})
             | Task | Result |
             | ---- | ------ |
-            | 🖌 **Terraform Format and Style** | ` + ("${{ steps.fmt.outcome }}" == "failure" ? "❌" : ("${{ steps.fmt.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.fmt.outcome }}\` |
+            | 🖌 **Terraform Format** | ` + ("${{ steps.fmt.outcome }}" == "failure" ? "❌" : ("${{ steps.fmt.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.fmt.outcome }}\` |
             | ⚙️ **Terraform Initialization** | ` + ("${{ steps.init.outcome }}" == "failure" ? "❌" : ("${{ steps.init.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.init.outcome }}\` |
             | 📖 **Terraform Plan** | ` + (plan_status == "failure" ? "❌" : (plan_status == "skipped" ? "⏭" : "✅")) + `\`` + plan_status + `\` |\n\n` + output_details;
             github.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output })

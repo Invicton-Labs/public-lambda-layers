@@ -128,7 +128,7 @@ module "docker_build" {
     local.arch_lookup
   ]
   // Trigger a rebuild if any of the parameters change
-  triggersaa     = each.value
+  triggers       = each.value
   timeout_create = 900
   environment = {
     IL_BUILDER_NAME       = local.builder_name
