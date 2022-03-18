@@ -14,14 +14,14 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
+      # Checkout this repository
+      - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
+        uses: actions/checkout@v2
+
       # Make the tmpfiles directory
       - name: Create tmpfiles directory
         working-directory: terraform
         run: mkdir tmpfiles
-
-      # Checkout this repository
-      - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
-        uses: actions/checkout@v2
 
       # Install Terraform
       - name: Install Terraform
