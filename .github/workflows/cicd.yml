@@ -101,7 +101,7 @@ jobs:
                     description: "Terraform Plan error output for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
                     public: false,
                     files: {
-                      "plan-error.txt": {
+                      "content.txt": {
                         content: plan_stderr,
                       }
                     },
@@ -109,7 +109,7 @@ jobs:
                   return JSON.stringify({
                     no_plan: false,
                     is_error: true,
-                    gist_url: gist_resp,
+                    gist_url: gist_resp.data.files['content.txt'].raw_url,
                     output: null
                   });
                 }
@@ -128,7 +128,7 @@ jobs:
                     description: "Terraform Plan for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
                     public: false,
                     files: {
-                      "plan.txt": {
+                      "content.txt": {
                         content: plan_stdout,
                       },
                     },
@@ -136,7 +136,7 @@ jobs:
                   return JSON.stringify({
                     no_plan: false,
                     is_error: false,
-                    gist_url: gist_resp,
+                    gist_url: gist_resp.data.files['content.txt'].raw_url,
                     output: null
                   });
                 }
