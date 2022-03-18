@@ -56,7 +56,8 @@ jobs:
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan
         id: read-plan
-        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
+        # If there's anything in the plan, the plan step will fail because the exit code 
+        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 2
         working-directory: terraform
         run: terraform show -no-color tmpfiles/tfplan
 
