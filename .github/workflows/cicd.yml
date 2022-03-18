@@ -81,21 +81,33 @@ jobs:
       - name: Update Pull Request
         uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request'
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             var plan_status = "skipped", output_details = "";
-            if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; }
+            if ("${{ steps.fmt.outcome }}" == "failure") { 
+              output_details += `<details>
+                <summary>Show Improperly Formatted Files</summary>
+                
+                \`\`\`
+                ${{ steps.fmt.outputs.stdout }}\`\`\`
+              </details>`; 
+            }
             if ("${{ steps.plan.outcome }}" != "skipped") {
+              const { Octokit } = require("@octokit/rest");
+              const octokit = new Octokit({auth: process.env.GIST_TOKEN});
               switch ("${{ steps.plan.outputs.exitcode }}") {
                 case "0":
-                  plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
+                  plan_status = "success"; output_details += `\n\n**No changes required.**`; 
+                  break;
                 case "1":
                   plan_status = "failure";
                   const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'});
                   if (plan_stderr.length > 20000) {
-                    const gist_resp = github.gists.create({
+                    const gist_resp = octokit.rest.gists.create({
                       description: "Terraform Plan error output for Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
                       public: true,
                       files: {
@@ -110,7 +122,7 @@ jobs:
                   plan_status = "success"; 
                   const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'});
                   if (plan_stdout.length > 10000) {
-                    const gist_resp = github.gists.create({
+                    const gist_resp = octokit.rest.gists.create({
                       description: "Terraform Plan for Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
                       public: true,
                       files: {
