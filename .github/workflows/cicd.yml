@@ -44,7 +44,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: terraform
-        run: terraform init -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
+        run: terraform inits -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
         continue-on-error: true
 
       # Run the plan, and continue on error so we can output the plan error if it fails
