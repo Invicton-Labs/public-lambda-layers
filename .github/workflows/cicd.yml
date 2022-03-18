@@ -67,8 +67,8 @@ jobs:
           set -e
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
+      # We do this just so the output appears in the GitHub Actions UI
       - name: Read Plan
-        id: read-plan
         # If there's anything in the plan, the plan step will fail because the exit code 
         if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 2
         working-directory: terraform
