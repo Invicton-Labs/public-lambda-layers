@@ -1,0 +1,54 @@
+{
+    "source_directory": "/layer",
+    "default_architectures": [
+        "x86_64",
+        "arm64"
+    ],
+    "common_instructions": [
+        "RUN python -m pip install --upgrade pip",
+        "WORKDIR /layer"
+    ],
+    "versions": {
+        "1.19.5": {
+            "common_instructions": [
+                "RUN pip install numpy==1.19.5 --target . && pip freeze --path . > requirements.txt"
+            ],
+            "runtimes": {
+                "python3.6": {
+                    "image": "public.ecr.aws/lambda/python:3.6",
+                    "destination_directory": "/python/lib/python3.6/site-packages",
+                    "instructions": []
+                }
+            }
+        },
+        "1.21.5": {
+            "common_instructions": [
+                "RUN pip install numpy==1.21.5 --target . && pip freeze --path . > requirements.txt"
+            ],
+            "runtimes": {
+                "python3.7": {
+                    "image": "public.ecr.aws/lambda/python:3.7",
+                    "destination_directory": "/python/lib/python3.7/site-packages",
+                    "instructions": []
+                }
+            }
+        },
+        "1.22.3": {
+            "common_instructions": [
+                "RUN pip install numpy==1.22.3 --target . && pip freeze --path . > requirements.txt"
+            ],
+            "runtimes": {
+                "python3.8": {
+                    "image": "public.ecr.aws/lambda/python:3.8",
+                    "destination_directory": "/python/lib/python3.8/site-packages",
+                    "instructions": []
+                },
+                "python3.9": {
+                    "image": "public.ecr.aws/lambda/python:3.9",
+                    "destination_directory": "/python/lib/python3.9/site-packages",
+                    "instructions": []
+                }
+            }
+        }
+    }
+}
