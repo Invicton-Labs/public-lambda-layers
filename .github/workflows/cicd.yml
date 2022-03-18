@@ -86,22 +86,24 @@ jobs:
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { output_details += "<details><summary>Show Improperly Formatted Files</summary>\`\`\`\n${{ steps.fmt.outputs.stdout }}\n\`\`\`"; }
             if ("${{ steps.plan.outcome }}" != "skipped") {
-              switch (${{ (steps.plan.outcome == "skipped" && "0") || steps.plan.outputs.exitcode }}) {
-                case 0:
+              switch ("${{ steps.plan.outputs.exitcode }}") {
+                case "0":
                   plan_status = "success"; output_details += "\n\n**No changes required.**"; break;
-                case 1:
+                case "1":
                   plan_status = "failure";
                   output_details = `\n\n<details><summary>Show Plan Errors</summary>
                       \`\`\`terraform\n
                       ${{ steps.plan.outputs.stderr }}
                       \`\`\`
                     </details>`; break;
-                case 2:
+                case "2":
                   plan_status = "success"; output_details += `\n\n<details><summary>Show Plan</summary>
                       \`\`\`terraform\n
                       ${{ steps.read-plan.outputs.stdout }}
                       \`\`\`
                     </details>`; break;
+                default:
+                  throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
               }
             }
             var output = `**Pusher:** @${{ github.actor }}
