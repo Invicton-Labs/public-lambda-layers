@@ -4,9 +4,18 @@ This module generates Lambda Layers for various packages and makes them public t
 
 If there's a package that you would like to request be added to this system, create a pull request with a `.json` file that follows the format of the files in the `layers` directory.
 
+
 ## Layers
 
-For a complete listing of layers that are currently published, see the wiki page. 
+For a complete listing of layers that are currently maintained, check this file. Since this is a JSON file, you can load it with infrastructure-as-code (e.g. Terraform) to select the desired layer ARNs.
+
+### [Layers List](https://gist.githubusercontent.com/KyleKotowick/173707592654d5a9e37b2f4f7cd51481/raw/6f59d30320261f8114ea56ef729f6c8bc3af750d/layers.json)
+
+
+## Testing
+
+The contents of these layers have not been thoroughly tested. If any of the packages fail to load for your Lambdas, please create an issue and, preferrably, a pull request if you know of the solution.
+
 
 ## Legal
 
