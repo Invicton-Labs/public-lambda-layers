@@ -91,17 +91,10 @@ jobs:
                   plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
                 case "1":
                   plan_status = "failure";
-                  output_details = `\n\n<details><summary>Show Plan Errors</summary>
-                      \`\`\`terraform\n
-                      ${{ steps.plan.outputs.stderr }}
-                      \`\`\`
-                    </details>`; break;
+                  output_details = `\n\n<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n${{ steps.plan.outputs.stderr }}\n\`\`\`\n</details>`; break;
                 case "2":
-                  plan_status = "success"; output_details += `\n\n<details><summary>Show Plan</summary>
-                      \`\`\`terraform\n
-                      ${{ steps.read-plan.outputs.stdout }}
-                      \`\`\`
-                    </details>`; break;
+                  plan_status = "success"; 
+                  output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n${{ steps.read-plan.outputs.stdout }}\n\`\`\`\n</details>`; break;
                 default:
                   throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
               }
@@ -110,9 +103,9 @@ jobs:
             **Workflow Run:** [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})
             | Task | Result |
             | ---- | ------ |
-            | 🖌 **Terraform Format and Style:** | ` + ("${{ steps.fmt.outcome }}" == "failure" ? "❌" : ("${{ steps.fmt.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.fmt.outcome }}\` |
-            | ⚙️ **Terraform Initialization:** | ` + ("${{ steps.init.outcome }}" == "failure" ? "❌" : ("${{ steps.init.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.init.outcome }}\` |
-            | 📖 **Terraform Plan:** | ` + (plan_status == "failure" ? "❌" : (plan_status == "skipped" ? "⏭" : "✅")) + `\`` + plan_status + `\` |\n\n` + output_details;
+            | 🖌 **Terraform Format and Style** | ` + ("${{ steps.fmt.outcome }}" == "failure" ? "❌" : ("${{ steps.fmt.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.fmt.outcome }}\` |
+            | ⚙️ **Terraform Initialization** | ` + ("${{ steps.init.outcome }}" == "failure" ? "❌" : ("${{ steps.init.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.init.outcome }}\` |
+            | 📖 **Terraform Plan** | ` + (plan_status == "failure" ? "❌" : (plan_status == "skipped" ? "⏭" : "✅")) + `\`` + plan_status + `\` |\n\n` + output_details;
             github.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output })
       
       
