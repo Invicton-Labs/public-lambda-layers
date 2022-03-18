@@ -159,9 +159,10 @@ module "package_hash_keeper" {
 }
 
 resource "time_static" "last_updated" {
-  for_each = module.docker_build
+  for_each = local.docker_images
   triggers = {
-    package_hash_keeper = jsonencode(each.value)
+    // Anything that changes in the docker build will trigger a new timestamp
+    build_config = base64encode(jsonencode(each.value))
   }
 }
 
