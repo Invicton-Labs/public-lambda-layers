@@ -88,7 +88,6 @@ jobs:
             var plan_status = "skipped", output_details = "";
             if ("${{ steps.fmt.outcome }}" == "failure") { output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; }
             if ("${{ steps.plan.outcome }}" != "skipped") {
-              let reader = new FileReaderSync();
               switch ("${{ steps.plan.outputs.exitcode }}") {
                 case "0":
                   plan_status = "success"; output_details += `\n\n**No changes required.**`; break;
