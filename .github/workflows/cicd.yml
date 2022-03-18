@@ -169,7 +169,7 @@ jobs:
               </details>`; 
             }
             if ("${{ steps.plan.outcome }}" != "skipped") {
-              const gist_results = JSON.parse("${{steps.create-gists.outputs.result}}");
+              const gist_results = JSON.parse(${{steps.create-gists.outputs.result}});
               if (output_details.length > 0) {
                 output_details += `\n\n`;
               }
