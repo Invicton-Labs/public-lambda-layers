@@ -16,8 +16,8 @@ module "lambda_shell_layer_permission_granter" {
   providers = {
     aws = aws.ca_central_1
   }
-  lambda_memory_sizess = 128
-  lambda_timeout       = 30
+  lambda_memory_size = 128
+  lambda_timeout     = 30
   lambda_role_policies_json = [
     data.aws_iam_policy_document.layer_permission_granter.json
   ]
