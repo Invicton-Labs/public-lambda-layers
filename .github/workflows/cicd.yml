@@ -69,55 +69,35 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-
-            var plan_status;
-            var output_details;
-
+            var plan_status, output_details;
             switch (${{ steps.plan.outputs.exitcode }}) {
               case 0:
-                plan_status = "success"
-                output_details = "**No changes required.**";
-                break;
-
+                plan_status = "success"; output_details = "**No changes required.**"; break;
               case 1:
-                plan_status = "failure"
+                plan_status = "failure";
                 output_details = `
-                  <details>
-                    <summary>Show Plan Errors</summary>
-
+                  <details><summary>Show Plan Errors</summary>
                     \`\`\`terraform\n
                     ${{ steps.plan.outputs.stderr }}
                     \`\`\`
-
                   </details>
-                `;
-                break;
-
+                `; break;
               case 2:
-                plan_status = "success"
-                output_details = `
-                  <details>
-                    <summary>Show Plan</summary>
-
+                plan_status = "success"; output_details = `
+                  <details><summary>Show Plan</summary>
                     \`\`\`terraform\n
                     ${{ steps.read-plan.outputs.stdout }}
                     \`\`\`
-
                   </details>
-                `;
-                break;
+                `; break;
             }
-
             var output = `**Pusher:** @${{ github.actor }}
             **Action:** \`${{ github.event_name }}\`
             **Workflow Run:** [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})
             #### 🖌 Terraform Format and Style: \`${{ steps.fmt.outcome }}\`
             #### ⚙️ Terraform Initialization: \`${{ steps.init.outcome }}\`
             #### 🤖 Terraform Validation: \`${{ steps.validate.outcome }}\`
-            #### 📖 Terraform Plan: \`` + plan_status + `\`
-
-            ` + output_details;
-
+            #### 📖 Terraform Plan: \`` + plan_status + `\`\n\n` + output_details;
             github.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -150,5 +130,5 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'kotowick@invictonlabs.com'
           git add layers.json
-          git commit -m "Publish new layers.json file"
+          git commit -m "Publish new layers.json file [skip ci]"
           git push
