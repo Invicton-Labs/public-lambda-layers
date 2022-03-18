@@ -53,9 +53,24 @@ jobs:
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan
         id: read-plan
-        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode != '' && steps.plan.outputs.exitcode == 0
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
         working-directory: terraform
         run: terraform show -no-color tmpfiles/tfplan
+
+      - name: Outputs
+        run: |
+          echo "fmt outcome: ${{ steps.fmt.outcome }}"
+          echo "fmt stdout: ${{ steps.fmt.outputs.stdout }}"
+          echo "fmt stderr: ${{ steps.fmt.outputs.stderr }}"
+          echo "init outcome: ${{ steps.init.outcome }}"
+          echo "init stdout: ${{ steps.init.outputs.stdout }}"
+          echo "init stderr: ${{ steps.init.outputs.stderr }}"
+          echo "plan outcome: ${{ steps.plan.outcome }}"
+          echo "plan stdout: ${{ steps.plan.outputs.stdout }}"
+          echo "plan stderr: ${{ steps.plan.outputs.stderr }}"
+          echo "read-plan outcome: ${{ steps.read-plan.outcome }}"
+          echo "read-plan stdout: ${{ steps.read-plan.outputs.stdout }}"
+          echo "read-plan stderr: ${{ steps.read-plan.outputs.stderr }}"
 
       # If it's a PR, update the PR with the plan output
       - name: Update Pull Request
@@ -65,8 +80,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             var plan_status = "not attempted", output_details = "";
-            if (${{ steps.fmt.outputs.exitcode }} != 0) { output_details += "<details><summary>Show Improperly Formatted Files</summary>\`\`\`\n${{ steps.fmt.outputs.stderr }}\n\`\`\`"; }
-            if ("${{ steps.plan.outputs.exitcode }}" != "") {
+            if ("${{ steps.fmt.outcome }}" == "failure") { output_details += "<details><summary>Show Improperly Formatted Files</summary>\`\`\`\n${{ steps.fmt.outputs.stderr }}\n\`\`\`"; }
+            if ("${{ steps.plan.outcome }}" != "") {
               switch (${{ steps.plan.outputs.exitcode }}) {
                 case 0:
                   plan_status = "success"; output_details += "\n\n**No changes required.**"; break;
