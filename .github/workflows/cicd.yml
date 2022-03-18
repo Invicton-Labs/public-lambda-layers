@@ -84,6 +84,7 @@ jobs:
         with:
           github-token: ${{ secrets.GIST_TOKEN }}
           script: |
+            const fs = require('fs')
             switch ("${{ steps.plan.outputs.exitcode }}") {
               case "0":
                 return {
@@ -92,6 +93,7 @@ jobs:
                   gist_url: null,
                   output: plan_stderr
                 };
+
               case "1":
                 const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'});
                 if (plan_stderr.length > 20000) {
@@ -116,6 +118,7 @@ jobs:
                   output: plan_stderr
                 };
                 break;
+                
               case "2":
                 const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'});
                 if (plan_stdout.length > 10000) {
