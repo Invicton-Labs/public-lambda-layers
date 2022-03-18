@@ -63,7 +63,7 @@ jobs:
         run: |
           set +e
           terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50 2> tmpfiles/plan.stderr
-          echo "::set-output name=exitcode::$($?)"
+          echo "::set-output name=exitcode::$?"
           set -e
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
