@@ -80,7 +80,7 @@ jobs:
       - name: Create Gists
         id: create-gists
         uses: actions/github-script@0.9.0
-        if: github.event_name == 'pull_request' && steps.plan.outcome != "skipped"
+        if: github.event_name == 'pull_request' && steps.plan.outcome != 'skipped'
         with:
           github-token: ${{ secrets.GIST_TOKEN }}
           script: |
