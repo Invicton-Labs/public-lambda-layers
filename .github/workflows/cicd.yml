@@ -32,17 +32,20 @@ jobs:
         id: fmt
         working-directory: terraform
         run: terraform fmt -check -recursive
+        continue-on-error: true
 
       # Initialize Terraform
       - name: Terraform Init
         id: init
         working-directory: terraform
-        run: terraform init -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
+        run: terraform inits -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
+        continue-on-error: true
 
       # Run the plan, and continue on error so we can output the plan error if it fails
       - name: Terraform Plan
         id: plan
-        if: github.event_name == 'pull_request'
+        # Only run the plan if it's a PR and the init succeeded
+        if: github.event_name == 'pull_request' && steps.init.outputs.exitcode == 0
         working-directory: terraform
         run: terraform plan -refresh=false -no-color -detailed-exitcode -out=tmpfiles/tfplan
         continue-on-error: true
@@ -98,27 +101,34 @@ jobs:
               body: output
             })
       
-      # Show the plan status
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
+      
+      # If the plan failed, fail the workflow
+      - name: Terraform Format Failure
+        if: steps.fmt.outputs.exitcode != 0
+        working-directory: terraform
+        run: exit 1
+
+      # If the plan failed, fail the workflow
+      - name: Terraform Plan Failure
+        if: steps.plan.outputs.exitcode == 1
         working-directory: terraform
         run: exit 1
 
       # Run the apply
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == 2
         working-directory: terraform
         run: terraform apply -auto-approve 
 
       # Prettify the JSON output
       - name: Create Layer JSON Output
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == 2
         working-directory: terraform
         run: jq . tmpfiles/layers.json > ../layers.json
   
       # Publish the new layers.json file
       - name: Commit Layer JSON file
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == 2
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'kotowick@invictonlabs.com'
