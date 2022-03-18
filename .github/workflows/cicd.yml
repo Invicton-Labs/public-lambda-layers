@@ -121,6 +121,7 @@ jobs:
                   } else {
                     output_details += `\n\n<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + plan_stdout + `\n\`\`\`\n</details>`; break;
                   }
+                  break;
                 default:
                   throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
               }
