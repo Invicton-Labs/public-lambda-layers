@@ -94,7 +94,7 @@ jobs:
 
               case "1":
                 const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'}).trim();
-                if (plan_stderr.length > 10) {
+                if (plan_stderr.length > 30000) {
                   const gist_resp = await github.gists.create({
                     description: "Terraform Plan error output for ${{ github.repository }} Workflow #${{ github.run_id }}-${{ github.run_attempt }}",
                     public: false,
