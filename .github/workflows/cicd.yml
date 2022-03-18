@@ -14,6 +14,11 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
+      # Make the tmpfiles directory
+      - name: Create tmpfiles directory
+        working-directory: terraform
+        run: mkdir tmpfiles
+
       # Checkout this repository
       - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
         uses: actions/checkout@v2
@@ -45,8 +50,15 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         working-directory: terraform
-        run: terraform plan -no-color
+        run: terraform plan -no-color -detailed-exitcode -out=tmpfiles/tfplan
         continue-on-error: true
+
+      # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
+      - name: Read Plan
+        id: read-plan
+        if: github.event_name == 'pull_request'
+        working-directory: terraform
+        run: if [ ${{ steps.plan.outputs.exitcode }} == 2 ]; then terraform show tmpfiles/tfplan ; fi
 
       # If it's a PR, update the PR with the plan output
       - name: Update Pull Request
@@ -57,28 +69,54 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
 
-            <details><summary>Show Plan</summary>
+            var plan_status;
+            var output_details;
 
-            \`\`\`terraform\n
-            ${{ steps.plan.outputs.stdout }}
-            
-            ${{ steps.plan.outputs.stderr }}
-            \`\`\`
+            switch (${{ steps.plan.outputs.exitcode }}) {
+              case 0:
+                plan_status = "success"
+                output_details = "**No changes required.**";
+                break;
 
-            </details>
+              case 1:
+                plan_status = "failure"
+                output_details = `
+                  <details>
+                    <summary>Show Plan Errors</summary>
 
-            \`\`\`terraform\n
-            ${{ steps.plan.outputs.stdout }}
-            \`\`\`
+                    \`\`\`terraform\n
+                    ${{ steps.plan.outputs.stderr }}
+                    \`\`\`
 
-            </details>
+                  </details>
+                `;
+                break;
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+              case 2:
+                plan_status = "success"
+                output_details = `
+                  <details>
+                    <summary>Show Plan</summary>
+
+                    \`\`\`terraform\n
+                    ${{ steps.read-plan.outputs.stdout }}
+                    \`\`\`
+
+                  </details>
+                `;
+                break;
+            }
+
+            var output = `**Pusher:** @${{ github.actor }}
+            **Action:** \`${{ github.event_name }}\`
+            **Workflow Run:** [#${{ github.run_id }}-${{ github.run_attempt }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})
+            #### 🖌 Terraform Format and Style: \`${{ steps.fmt.outcome }}\`
+            #### ⚙️ Terraform Initialization: \`${{ steps.init.outcome }}\`
+            #### 🤖 Terraform Validation: \`${{ steps.validate.outcome }}\`
+            #### 📖 Terraform Plan: \`` + plan_status + `\`
+
+            ` + output_details;
 
             github.issues.createComment({
               issue_number: context.issue.number,
@@ -109,7 +147,7 @@ jobs:
       - name: Commit Layer JSON file
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          git config --global user.name 'Invicton Labs Bot'
+          git config --global user.name 'github-actions'
           git config --global user.email 'kotowick@invictonlabs.com'
           git add layers.json
           git commit -m "Publish new layers.json file"
