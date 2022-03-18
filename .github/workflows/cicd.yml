@@ -96,7 +96,7 @@ jobs:
                 const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'}).trim();
                 if (plan_stderr.length > 20000) {
                   const gist_resp = await github.gists.create({
-                    description: "Terraform Plan error output for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
+                    description: "Terraform Plan error output for ${{ github.repository }} Workflow #${{ github.run_id }}-${{ github.run_attempt }}",
                     public: false,
                     files: {
                       "content.txt": {
@@ -120,10 +120,10 @@ jobs:
                 break;
                 
               case "2":
-                const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'}).trim();
+                const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'}).trim().substr(0, 9999);
                 if (plan_stdout.length > 10000) {
                   const gist_resp = await github.gists.create({
-                    description: "Terraform Plan for [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}) Workflow [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})",
+                    description: "Terraform Plan for ${{ github.repository }} Workflow #${{ github.run_id }}-${{ github.run_attempt }}",
                     public: false,
                     files: {
                       "content.txt": {
