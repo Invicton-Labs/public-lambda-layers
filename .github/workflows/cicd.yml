@@ -53,9 +53,9 @@ jobs:
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan
         id: read-plan
-        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 0
+        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode != "" && steps.plan.outputs.exitcode == 0
         working-directory: terraform
-        run: terraform show tmpfiles/tfplan
+        run: terraform show -no-color tmpfiles/tfplan
 
       # If it's a PR, update the PR with the plan output
       - name: Update Pull Request
