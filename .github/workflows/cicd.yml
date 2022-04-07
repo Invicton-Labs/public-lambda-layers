@@ -198,19 +198,25 @@ jobs:
       - name: Terraform Init Failure
         if: steps.init.outputs.exitcode != 0
         working-directory: terraform
-        run: exit 1
+        run: |
+          echo "${{ steps.init.outputs.stderr }}"
+          exit 1
       
       # If the format failed, fail the workflow
       - name: Terraform Format Failure
         if: steps.fmt.outputs.exitcode != 0
         working-directory: terraform
-        run: exit 1
+        run: |
+          echo "${{ steps.fmt.outputs.stdout }}"
+          exit 1
 
       # If the plan failed, fail the workflow
       - name: Terraform Plan Failure
         if: steps.plan.outputs.exitcode == 1
         working-directory: terraform
-        run: exit 1
+        run: |
+          cat tmpfiles/plan.stderr
+          exit 1
 
       # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
       - name: Read Plan

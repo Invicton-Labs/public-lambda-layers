@@ -1,4 +1,4 @@
-// Use a remote S3 backend, hosted on the main Clip Money account
+// Use a remote S3 backend, hosted on the main organization account
 terraform {
   backend "s3" {
     encrypt        = true
