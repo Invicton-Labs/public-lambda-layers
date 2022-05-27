@@ -361,7 +361,7 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
                 if metadata != layer_config['description']:
                     continue
 
-                existing_layers_needing_policy_check[uuid.uuid4()] = {
+                existing_layers_needing_policy_check[str(uuid.uuid4())] = {
                     'region': region,
                     'layer_name': existing_layer['LayerName'],
                     'version': existing_layer['Version']
@@ -379,7 +379,7 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
     for input_key, existing_policy_datum in existing_policy_data.items():
         has_policy, statements_to_remove = existing_policy_datum
         for stmt in statements_to_remove:
-            all_statements_to_remove[uuid.uuid4()] = stmt
+            all_statements_to_remove[str(uuid.uuid4())] = stmt
         if not has_policy:
             create_policy_inputs[input_key] = existing_layers_needing_policy_check[input_key]
 
@@ -410,7 +410,7 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
 
 
 def create_layer(region, layer_config):
-    s3_object = '{}-{}.zip'.format(layer_config['name'], uuid.uuid4())
+    s3_object = '{}-{}.zip'.format(layer_config['name'], str(uuid.uuid4()))
 
     # Upload the layer to the regional bucket
     print('Uploading deployment artifact for {} in {}'.format(
