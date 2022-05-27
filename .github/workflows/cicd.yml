@@ -2,6 +2,7 @@ on:
   push:
     branches:
       - main
+  pull_request:
 
 # Always limit to a single concurrency to ensure that all plans/applys have the most recent state
 concurrency: 
