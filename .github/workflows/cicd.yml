@@ -4,244 +4,43 @@ on:
       - main
   pull_request:
 
-# Always limit to a single concurrency to ensure that all plans/applys have the most recent state
+# Always limit to a single concurrency for safe deployments
 concurrency: 
   group: single-concurrency
 
 jobs:
-  terraform:
-    name: "Terraform"
+  build:
+    name: "Build"
     runs-on: ubuntu-latest
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
+
       # Checkout this repository
       - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      # Make the tmpfiles directory
-      - name: Preparation
-        id: preparation
-        working-directory: terraform
-        run: |
-          mkdir tmpfiles
-          cd tmpfiles
-          echo "::set-output name=tmpfile_dir::$(pwd)"
-
-      # Install Terraform
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v1
-
-      # Ensure the Terraform config is properly formatted
-      - name: Terraform Format
-        id: fmt
-        working-directory: terraform
-        run: terraform fmt -check -recursive
-        continue-on-error: true
-
-      # Initialize Terraform
-      - name: Terraform Init
-        id: init
-        working-directory: terraform
-        run: terraform init -reconfigure -backend-config="bucket=${{ secrets.BACKEND_BUCKET_ID }}" -backend-config="key=${{ secrets.BACKEND_BUCKET_KEY }}" -backend-config="role_arn=${{ secrets.BACKEND_ROLE_ARN }}"
-        continue-on-error: true
-
-      # Remove the wrapper from Terraform so we don't get debug output when we direct to a file
-      - name: Remove Terraform Wrapper
-        uses: hashicorp/setup-terraform@v1
+      - name: Setup Python
+        uses: actions/setup-python@v3
         with:
-          terraform_wrapper: false
+          python-version: '3.10'
+          cache: 'pip'
 
-      # Run the plan, and continue on error so we can output the plan error if it fails
-      - name: Terraform Plan
-        id: plan
-        # Only run the plan if it's a PR and the init succeeded
-        if: steps.init.outcome == 'success'
-        working-directory: terraform
-        # We store the stderr to a file that we can read later, and the exitcode to an output
-        run: |
-          set +e
-          terraform plan -detailed-exitcode -out=tmpfiles/tfplan -parallelism=50 2> tmpfiles/plan.stderr
-          echo "::set-output name=exitcode::$?"
-          set -e
+      - name: Pip Install
+        working-directory: ./builder
+        run: pip install -r requirements.txt
 
-      # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
-      # We do this just so the output appears in the GitHub Actions UI
-      - name: Read Plan
-        # If there's anything in the plan, the plan step will fail because the exit code 
-        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == 2
-        working-directory: terraform
-        run: terraform show -no-color tmpfiles/tfplan > tmpfiles/plan.stdout
+      - name: Validate
+        if: github.event_name != 'push'
+        working-directory: ./builder
+        run: python ./build.py
 
-      # Process the plan output and create Gists if necessary
-      - name: Process Plan
-        id: process-plan
-        uses: actions/github-script@0.9.0
-        if: github.event_name == 'pull_request' && steps.plan.outcome != 'skipped'
-        with:
-          github-token: ${{ secrets.GIST_TOKEN }}
-          script: |
-            const fs = require('fs');
-            switch ("${{ steps.plan.outputs.exitcode }}") {
-              case "0":
-                return JSON.stringify({
-                  no_plan: true,
-                  is_error: false,
-                  gist_url: null,
-                  output: plan_stderr
-                });
+      - name: Set up QEMU
+        if: github.event_name == 'push'
+        uses: docker/setup-qemu-action@v2
 
-              case "1":
-                const plan_stderr = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stderr", {encoding:'utf8', flag:'r'}).trim();
-                if (plan_stderr.length > 30000) {
-                  const gist_resp = await github.gists.create({
-                    description: "Terraform Plan error output for ${{ github.repository }} Workflow #${{ github.run_id }}-${{ github.run_attempt }}",
-                    public: false,
-                    files: {
-                      "content.txt": {
-                        content: plan_stderr,
-                      }
-                    },
-                  });
-                  return JSON.stringify({
-                    no_plan: false,
-                    is_error: true,
-                    gist_url: gist_resp.data.files['content.txt'].raw_url,
-                    output: null
-                  });
-                }
-                return JSON.stringify({
-                  no_plan: false,
-                  is_error: true,
-                  gist_url: null,
-                  output: plan_stderr
-                });
-                break;
-                
-              case "2":
-                const plan_stdout = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/plan.stdout", {encoding:'utf8', flag:'r'}).trim();
-                if (plan_stdout.length > 30000) {
-                  const gist_resp = await github.gists.create({
-                    description: "Terraform Plan for ${{ github.repository }} Workflow #${{ github.run_id }}-${{ github.run_attempt }}",
-                    public: false,
-                    files: {
-                      "content.txt": {
-                        content: plan_stdout,
-                      },
-                    },
-                  });
-                  return JSON.stringify({
-                    no_plan: false,
-                    is_error: false,
-                    gist_url: gist_resp.data.files['content.txt'].raw_url,
-                    output: null
-                  });
-                }
-                return JSON.stringify({
-                  no_plan: false,
-                  is_error: false,
-                  gist_url: null,
-                  output: plan_stdout
-                });
-                break;
-              default:
-                throw "Unknown terraform plan status code: ${{ steps.plan.outputs.exitcode }}"
-            }
-
-      # If it's a PR, update the PR with the plan output
-      - name: Update Pull Request
-        uses: actions/github-script@0.9.0
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var plan_status = "skipped", output_details = "";
-            if ("${{ steps.fmt.outcome }}" == "failure") { 
-              output_details += `<details><summary>Show Improperly Formatted Files</summary>\n\n\`\`\`\n${{ steps.fmt.outputs.stdout }}\`\`\`\n</details>`; 
-            }
-            if ("${{ steps.plan.outcome }}" != "skipped") {
-              const gist_results = JSON.parse(${{ (steps.process-plan.outputs.result == '' && '""') || steps.process-plan.outputs.result }});
-              if (output_details.length > 0) {
-                output_details += `\n\n`;
-              }
-              if (gist_results.no_plan) {
-                plan_status = "success"; 
-                output_details += `\n\n**No changes required.**`; 
-              } else if (gist_results.is_error) {
-                plan_status = "failure";
-                if (gist_results.gist_url != null) {
-                  output_details += `\n\n[Terraform Plan Errors](` + gist_results.gist_url + `)`;
-                } else {
-                  output_details += `<details><summary>Show Plan Errors</summary>\n\n\`\`\`terraform\n` + gist_results.output + `\n\`\`\`\n</details>`;
-                }
-              } else {
-                plan_status = "success"; 
-                if (gist_results.gist_url != null) {
-                  output_details += `\n\n[Terraform Plan](` + gist_results.gist_url + `)`;
-                } else {
-                  output_details += `<details><summary>Show Plan</summary>\n\n\`\`\`terraform\n` + gist_results.output + `\n\`\`\`\n</details>`;
-                }
-              }
-            }
-            var output = `**Author:** @${{ github.actor }}
-            **Workflow Run:** [#${{ github.run_id }}-${{ github.run_attempt }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }})
-            | Task | Result |
-            | ---- | ------ |
-            | 🖌 **Terraform Format** | ` + ("${{ steps.fmt.outcome }}" == "failure" ? "❌" : ("${{ steps.fmt.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.fmt.outcome }}\` |
-            | ⚙️ **Terraform Initialization** | ` + ("${{ steps.init.outcome }}" == "failure" ? "❌" : ("${{ steps.init.outcome }}" == "skipped" ? "⏭" : "✅")) + `\`${{ steps.init.outcome }}\` |
-            | 📖 **Terraform Plan** | ` + (plan_status == "failure" ? "❌" : (plan_status == "skipped" ? "⏭" : "✅")) + `\`` + plan_status + `\` |\n\n` + output_details;
-            github.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output })
-      
-      
-      # If the init failed, fail the workflow
-      - name: Terraform Init Failure
-        if: steps.init.outputs.exitcode != 0
-        working-directory: terraform
-        run: exit 1
-      
-      # If the format failed, fail the workflow
-      - name: Terraform Format Failure
-        if: steps.fmt.outputs.exitcode != 0
-        working-directory: terraform
-        run: exit 1
-
-      # If the plan failed, fail the workflow
-      - name: Terraform Plan Failure
-        if: steps.plan.outputs.exitcode == 1
-        working-directory: terraform
-        run: exit 1
-
-      # Read the plan file. This allows us to get the plan without also seeing all of the "refreshing..." lines
-      - name: Read Plan
-        id: read-plan
-        # If there's anything in the plan, the plan step will fail because the exit code 
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        working-directory: terraform
-        run: terraform show tmpfiles/tfplan
-
-      # Run the apply, using the plan file that was previously generated
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        working-directory: terraform
-        run: terraform apply -auto-approve -parallelism=50 tmpfiles/tfplan
-
-      # Update Gist
-      - name: Update Layers Gist
-        id: update-gist
-        uses: actions/github-script@0.9.0
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        with:
-          github-token: ${{ secrets.GIST_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const layer_json = fs.readFileSync("${{ steps.preparation.outputs.tmpfile_dir }}/layers.json", {encoding:'utf8', flag:'r'}).trim();
-            const gist_resp = await github.gists.update({
-              gist_id: "173707592654d5a9e37b2f4f7cd51481",
-              description: "${{ github.repository }} Layers - ${{ github.ref }}",
-              files: {
-                "layers.json": {
-                  content: JSON.stringify(JSON.parse(layer_json), null, 2),
-                }
-              },
-            });
+      - name: Validate and Build
+        if: github.event_name == 'push'
+        working-directory: ./builder
+        run: ./build.sh

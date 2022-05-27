@@ -1,0 +1,176 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "Schema for Lambda layer build definitions.",
+    "type": "object",
+    "required": [
+        "runtimes"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "$defs": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
+        },
+        "common_instructions_pre": {
+            "description": "An array of Docker instructions that should be run for all layer builds, before any other instructions.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "common_instructions_post": {
+            "description": "An array of Docker instructions that should be run for all layer builds, after all other instructions.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "default_image": {
+            "description": "The Docker image to use when running the build commands. This property can be overridden by the 'default_image' property at the runtime or version level, or the 'image' property at the architecture level.",
+            "type": "string"
+        },
+        "default_layer_source_directory": {
+            "description": "The directory in the build image that contains all files that should be included in the layer. This property can be overridden by the 'default_layer_source_directory' at the runtime or version levels, or by the 'layer_source_directory' property at the architecture level.",
+            "type": "string"
+        },
+        "default_layer_target_directory": {
+            "description": "The directory in the Lambda layer where files should be placed. This property can be overridden by the 'default_layer_target_directory' at the runtime or version levels, or by the 'layer_target_directory' property at the architecture level.",
+            "type": "string"
+        },
+        "runtimes": {
+            "description": "A map of Lambda runtime to build definition for that runtime.",
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": {
+                "description": "Build definition for a specific version-runtime combination.",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "versions"
+                ],
+                "properties": {
+                    "common_instructions_pre": {
+                        "description": "An array of Docker instructions that should be run for all layer builds for this version, after the package level 'common_instructions_pre' instructions, but before any other instructions.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": []
+                    },
+                    "common_instructions_post": {
+                        "description": "An array of Docker instructions that should be run for all layer builds for this version, after all of the 'common_instructions_pre' instructions, architecture-specific instructions, and version-specific 'common_instructions_post' instructions, but before the package level 'common_instructions_post' instructions.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": []
+                    },
+                    "default_image": {
+                        "description": "The Docker image to use when running the build commands. This property overrides the 'default_image' property at the package level. This property can be overridden by the 'default_image' property at the version level or the 'image' property at the architecture level.",
+                        "type": "string"
+                    },
+                    "default_layer_source_directory": {
+                        "description": "The directory in the build image that contains all files that should be included in the layer. This property overrides the 'default_layer_source_directory' property at the package level. This property can be overridden by the 'default_layer_source_directory' at the version level or by the 'layer_source_directory' property at the architecture level.",
+                        "type": "string"
+                    },
+                    "default_layer_target_directory": {
+                        "description": "The directory in the Lambda layer where files should be placed. This property overrides the 'default_layer_target_directory' property at the package level. This property can be overridden by the 'default_layer_target_directory' property at the version level or by the 'layer_target_directory' property at the architecture level.",
+                        "type": "string"
+                    },
+                    "versions": {
+                        "description": "A map of version number to build definition for that version.",
+                        "type": "object",
+                        "required": [],
+                        "properties": {},
+                        "additionalProperties": {
+                            "description": "Build definition for a specific version.",
+                            "type": "object",
+                            "required": [
+                                "architectures"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                                "common_instructions_pre": {
+                                    "description": "An array of Docker instructions that should be run for all layer builds for this runtime-version combination, after the package and runtime 'common_instructions_pre' instructions, but before any other instructions.",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "default": []
+                                },
+                                "common_instructions_post": {
+                                    "description": "An array of Docker instructions that should be run for all layer builds for this runtime-version combination, after all of the 'common_instructions_pre' and architecture-specific instructions, but before any other 'common_instructions_post' instructions.",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "default": []
+                                },
+                                "default_image": {
+                                    "description": "The Docker image to use when running the build commands. This property overrides the 'default_image' property at the package and runtime levels. This property can be overridden by the 'image' property at the architecture level.",
+                                    "type": "string"
+                                },
+                                "default_layer_source_directory": {
+                                    "description": "The directory in the build image that contains all files that should be included in the layer. This property overrides the 'default_layer_source_directory' property at the package and runtime levels. This property can be overridden by the 'layer_source_directory' property at the architecture level.",
+                                    "type": "string"
+                                },
+                                "default_layer_target_directory": {
+                                    "description": "The directory in the Lambda layer where files should be placed. This property overrides the 'default_layer_target_directory' property at the package and runtime levels. This property can be overridden by the 'layer_target_directory' property at the architecture level.",
+                                    "type": "string"
+                                },
+                                "architectures": {
+                                    "description": "A mapping of Lambda architecture type ('x86_64' or 'amd64') to architecture-specific configurations.",
+                                    "type": "object",
+                                    "required": [],
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "x86_64": {
+                                            "ref": "#/$defs/architecture"
+                                        },
+                                        "arm64": {
+                                            "ref": "#/$defs/architecture"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "$defs": {
+        "architecture": {
+            "description": "Configuration specific to a single architecture.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [],
+            "properties": {
+                "image": {
+                    "description": "The Docker image to use when running the build instructions. This property will override any of the 'default_image' properties.",
+                    "type": "string"
+                },
+                "instructions": {
+                    "description": "An array of Docker instructions to apply after all of the 'common_instructions_pre' instructions, but before any of the 'common_instructions_post' instructions.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": []
+                },
+                "layer_source_directory": {
+                    "description": "The directory in the build image that contains all files that should be included in the layer. This property will override any of the 'default_layer_source_directory' properties.",
+                    "type": "string"
+                },
+                "layer_target_directory": {
+                    "description": "The directory in the Lambda layer where files should be placed. This property will override any of the 'default_layer_target_directory' properties.",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
