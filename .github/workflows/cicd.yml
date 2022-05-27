@@ -4,7 +4,7 @@ on:
       - main
   pull_request:
 
-# Always limit to a single concurrency to ensure that all plans/applys have the most recent state
+# Always limit to a single concurrency for safe deployments
 concurrency: 
   group: single-concurrency
 
@@ -32,7 +32,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Validate
-        if: github.event_name == 'pull_request'
+        if: github.event_name != 'push'
         working-directory: ./builder
         run: python build.py
 
