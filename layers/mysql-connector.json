@@ -12,14 +12,8 @@
             "default_image": "public.ecr.aws/lambda/python:3.6",
             "default_layer_target_directory": "/python/lib/python3.6/site-packages",
             "versions": {
-                "1.19.5": {
-                    "common_instructions_pre": [
-                        "RUN pip install numpy==1.19.5 --target ."
-                    ],
-                    "architectures": {
-                        "x86_64": {},
-                        "arm64": {}
-                    }
+                "8.0.29": {
+                    "$ref": "#/$defs/version-8.0.29"
                 }
             }
         },
@@ -27,14 +21,8 @@
             "default_image": "public.ecr.aws/lambda/python:3.7",
             "default_layer_target_directory": "/python/lib/python3.7/site-packages",
             "versions": {
-                "1.21.5": {
-                    "common_instructions_pre": [
-                        "RUN pip install numpy==1.21.5 --target ."
-                    ],
-                    "architectures": {
-                        "x86_64": {},
-                        "arm64": {}
-                    }
+                "8.0.29": {
+                    "$ref": "#/$defs/version-8.0.29"
                 }
             }
         },
@@ -42,14 +30,8 @@
             "default_image": "public.ecr.aws/lambda/python:3.8",
             "default_layer_target_directory": "/python/lib/python3.8/site-packages",
             "versions": {
-                "1.22.3": {
-                    "common_instructions_pre": [
-                        "RUN pip install numpy==1.22.3 --target ."
-                    ],
-                    "architectures": {
-                        "x86_64": {},
-                        "arm64": {}
-                    }
+                "8.0.29": {
+                    "$ref": "#/$defs/version-8.0.29"
                 }
             }
         },
@@ -57,15 +39,20 @@
             "default_image": "public.ecr.aws/lambda/python:3.9",
             "default_layer_target_directory": "/python/lib/python3.9/site-packages",
             "versions": {
-                "1.22.3": {
-                    "common_instructions_pre": [
-                        "RUN pip install numpy==1.22.3 --target ."
-                    ],
-                    "architectures": {
-                        "x86_64": {},
-                        "arm64": {}
-                    }
+                "8.0.29": {
+                    "$ref": "#/$defs/version-8.0.29"
                 }
+            }
+        }
+    },
+    "$defs": {
+        "version-8.0.29": {
+            "common_instructions_pre": [
+                "RUN pip install mysql-connector-python==8.0.29 --target ."
+            ],
+            "architectures": {
+                "x86_64": {},
+                "arm64": {}
             }
         }
     }

@@ -1,41 +1,58 @@
 {
-    "source_directory": "/layer",
-    "default_architectures": [
-        "x86_64",
-        "arm64"
-    ],
+    "default_layer_source_directory": "/layer",
     "common_instructions_pre": [
         "RUN pip3 install --upgrade pip",
         "WORKDIR /layer"
     ],
-    "common_instructions_post": [],
-    "versions": {
-        "2.3.0": {
-            "common_instructions_pre": [
-                "RUN pip install pyjwt==2.3.0 cryptography==36.0.2 --target . && pip freeze --path . > requirements.txt"
-            ],
-            "common_instructions_post": [],
-            "runtimes": {
-                "python3.6": {
-                    "image": "public.ecr.aws/lambda/python:3.6",
-                    "destination_directory": "/python/lib/python3.6/site-packages",
-                    "instructions": []
-                },
-                "python3.7": {
-                    "image": "public.ecr.aws/lambda/python:3.7",
-                    "destination_directory": "/python/lib/python3.7/site-packages",
-                    "instructions": []
-                },
-                "python3.8": {
-                    "image": "public.ecr.aws/lambda/python:3.8",
-                    "destination_directory": "/python/lib/python3.8/site-packages",
-                    "instructions": []
-                },
-                "python3.9": {
-                    "image": "public.ecr.aws/lambda/python:3.9",
-                    "destination_directory": "/python/lib/python3.9/site-packages",
-                    "instructions": []
+    "common_instructions_post": [
+        "RUN pip freeze --path . > requirements.txt"
+    ],
+    "runtimes": {
+        "python3.6": {
+            "default_image": "public.ecr.aws/lambda/python:3.6",
+            "default_layer_target_directory": "/python/lib/python3.6/site-packages",
+            "versions": {
+                "8.0.29": {
+                    "$ref": "#/$defs/version-2.4.0"
                 }
+            }
+        },
+        "python3.7": {
+            "default_image": "public.ecr.aws/lambda/python:3.7",
+            "default_layer_target_directory": "/python/lib/python3.7/site-packages",
+            "versions": {
+                "8.0.29": {
+                    "$ref": "#/$defs/version-2.4.0"
+                }
+            }
+        },
+        "python3.8": {
+            "default_image": "public.ecr.aws/lambda/python:3.8",
+            "default_layer_target_directory": "/python/lib/python3.8/site-packages",
+            "versions": {
+                "8.0.29": {
+                    "$ref": "#/$defs/version-2.4.0"
+                }
+            }
+        },
+        "python3.9": {
+            "default_image": "public.ecr.aws/lambda/python:3.9",
+            "default_layer_target_directory": "/python/lib/python3.9/site-packages",
+            "versions": {
+                "8.0.29": {
+                    "$ref": "#/$defs/version-2.4.0"
+                }
+            }
+        }
+    },
+    "$defs": {
+        "version-2.4.0": {
+            "common_instructions_pre": [
+                "RUN pip install pyjwt==2.4.0 cryptography==37.0.2 --target ."
+            ],
+            "architectures": {
+                "x86_64": {},
+                "arm64": {}
             }
         }
     }
