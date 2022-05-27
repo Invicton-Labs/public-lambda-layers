@@ -9,7 +9,7 @@ If there's a package that you would like to request be added to this system, cre
 
 For a complete listing of layers that are currently maintained, check this file. Since this is a JSON file, you can load it with infrastructure-as-code (e.g. Terraform) to select the desired layer ARNs.
 
-### [Layers List](pll.invictonlabs.com/layers.json)
+### [https://pll.invictonlabs.com/layers.json](https://pll.invictonlabs.com/layers.json)
 
 
 ## Testing
@@ -21,4 +21,4 @@ The contents of these layers have not been thoroughly tested. If any of the pack
 
 Invicton Labs makes no claim to ownership or copyright of any layer contents that were pulled from an external source (e.g. PyPI). All layer content is licensed under the license of the original external content.
 
-Similarly, Invicton Labs provides no warranty for the contents of the layers.
+Invicton Labs provides no warranty for the contents of the layers.
