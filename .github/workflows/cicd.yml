@@ -43,4 +43,4 @@ jobs:
       - name: Validate and Build
         if: github.event_name == 'push'
         working-directory: ./builder
-        run: ./build.sh
+        run: /bin/bash build.sh
