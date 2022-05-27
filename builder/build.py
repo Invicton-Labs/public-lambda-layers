@@ -582,7 +582,7 @@ if __name__ == "__main__":
     layer_configs = generate_layer_configs(layer_definitions)
 
     # If we're only validating, exit here
-    if len(sys.argv) == 0 or sys.argv[1] != 'true':
+    if len(sys.argv) <= 1 or sys.argv[1] != 'true':
         exit(0)
 
     prepare_aws()
