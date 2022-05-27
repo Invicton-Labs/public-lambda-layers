@@ -41,6 +41,8 @@ project_url = 'https://github.com/Invicton-Labs/public-lambda-layers'
 
 # This is the ID we use for the Lambda layer permission statement
 permission_statement_id = 'public-access'
+permission_action = 'lambda:GetLayerVersion'
+permission_principal = '*'
 
 # A temporary directory where we'll be putting our files
 tmpdir = tempfile.TemporaryDirectory()
@@ -135,7 +137,7 @@ def get_existing_layers_in_region(region):
     return layers
 
 
-def layer_has_existing_public_policy(region, layer_name, version):
+def get_layer(region, layer_name, version):
     client = lambda_clients[region]
     statements_to_remove = []
     has_public_policy = False
@@ -147,7 +149,7 @@ def layer_has_existing_public_policy(region, layer_name, version):
         policy = json.loads(policy_resp['Policy'])
         for statement in policy['Statement']:
             # If we haven't already found a public statement, and this one is public, mark it as the public one
-            if statement['Sid'] == permission_statement_id and statement['Principal'] == '*' and statement['Action'] == 'lambda:GetLayerVersion':
+            if statement['Sid'] == permission_statement_id and statement['Principal'] == permission_principal and statement['Action'] == permission_action:
                 has_public_policy = True
                 continue
             # If it's not what we're looking for, mark it for removal
@@ -159,7 +161,12 @@ def layer_has_existing_public_policy(region, layer_name, version):
             })
     except client.exceptions.ResourceNotFoundException:
         pass
-    return has_public_policy, statements_to_remove
+
+    existing_layer = client.get_layer_version(
+        LayerName=layer_name,
+        VersionNumber=version
+    )
+    return has_public_policy, statements_to_remove, existing_layer['Content']
 
 
 def create_public_policy(region, layer_name, version):
@@ -167,8 +174,8 @@ def create_public_policy(region, layer_name, version):
         LayerName=layer_name,
         VersionNumber=version,
         StatementId=permission_statement_id,
-        Action='lambda:GetLayerVersion',
-        Principal='*',
+        Action=permission_action,
+        Principal=permission_principal,
     )
 
 
@@ -371,17 +378,20 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
 
     print('Checking policies for existing layers...')
     # Check each layer to see if it has an existing public policy
-    existing_policy_data = concurrent_func(
-        100, layer_has_existing_public_policy, existing_layers_needing_policy_check, expand_input=True)
+    existing_layer_data = concurrent_func(
+        100, get_layer, existing_layers_needing_policy_check, expand_input=True)
 
     all_statements_to_remove = []
     create_policy_inputs = {}
-    for input_key, existing_policy_datum in existing_policy_data.items():
-        has_policy, statements_to_remove = existing_policy_datum
+    for input_key, existing_layer_datum in existing_layer_data.items():
+        has_policy, statements_to_remove, content = existing_layer_datum
+        inpt = existing_layers_needing_policy_check[input_key]
+        layer_configs[inpt['layer_name']
+                      ]['regional'][inpt['region']]['Content'] = content
         for stmt in statements_to_remove:
             all_statements_to_remove[str(uuid.uuid4())] = stmt
         if not has_policy:
-            create_policy_inputs[input_key] = existing_layers_needing_policy_check[input_key]
+            create_policy_inputs[input_key] = inpt
 
     print('{} existing layer policy statements must be removed'.format(
         len(all_statements_to_remove)))
@@ -439,8 +449,8 @@ def create_layer(region, layer_config):
         LayerName=layer_config['name'],
         VersionNumber=publish_response['Version'],
         StatementId=permission_statement_id,
-        Action='lambda:GetLayerVersion',
-        Principal='*',
+        Action=permission_action,
+        Principal=permission_principal,
     )
     print('All operations complete for {} in {}'.format(
         layer_config['name'], region))
@@ -603,7 +613,7 @@ if __name__ == "__main__":
             ]
         }
         for k, layer_config in layer_configs.items()
-        if len([True for existing_layer in layer_config['regional'].values() if existing_layer is None])
+        if len([True for existing_layer in layer_config['regional'].values() if existing_layer is None]) > 0
     }
 
     num_publications = 0
