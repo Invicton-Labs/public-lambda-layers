@@ -44,7 +44,7 @@
             "versions": {
                 "1.4.2": {
                     "common_instructions_pre": [
-                        "RUN pip install numpy==1.4.2 --target ."
+                        "RUN pip install pandas==1.4.2 --target ."
                     ],
                     "architectures": {
                         "x86_64": {},
@@ -59,7 +59,7 @@
             "versions": {
                 "1.4.2": {
                     "common_instructions_pre": [
-                        "RUN pip install numpy==1.4.2 --target ."
+                        "RUNS pip install pandas==1.4.2 --target ."
                     ],
                     "architectures": {
                         "x86_64": {},

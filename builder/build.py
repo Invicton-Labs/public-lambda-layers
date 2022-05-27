@@ -42,9 +42,6 @@ project_url = 'https://github.com/Invicton-Labs/public-lambda-layers'
 # This is the ID we use for the Lambda layer permission statement
 permission_statement_id = 'public-access'
 
-# This is the name we use for the Docker
-builder_name = "multiarch"
-
 # A temporary directory where we'll be putting our files
 tmpdir = tempfile.TemporaryDirectory()
 
@@ -465,7 +462,7 @@ def build_layer(layer_config, stream_output, regions_to_publish):
     # Build the image and load it into the local registry
     print('Building layer {}...'.format(layer_config['name']))
     try:
-        r = subprocess.run(['docker', 'buildx', 'build', '--builder', builder_name, '--platform', layer_config['platform'],
+        r = subprocess.run(['docker', 'buildx', 'build', '--platform', layer_config['platform'],
                             '--load', '-t', layer_config['image_tag'], '-f', layer_config['dockerfile_path'], '.'], check=True, stderr=stderr, stdout=stdout)
     except subprocess.CalledProcessError as e:
         if e.stdout is not None:
