@@ -34,7 +34,7 @@ jobs:
       - name: Validate
         if: github.event_name != 'push'
         working-directory: ./builder
-        run: ./bash.sh
+        run: python ./build.py
 
       - name: Set up QEMU
         if: github.event_name == 'push'
@@ -43,4 +43,4 @@ jobs:
       - name: Validate and Build
         if: github.event_name == 'push'
         working-directory: ./builder
-        run: ./bash.sh true
+        run: ./build.sh

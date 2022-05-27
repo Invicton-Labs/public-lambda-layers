@@ -6,5 +6,6 @@ if ! [ $? -eq 0 ]; then
     set -e
     docker buildx create --name "multiarch"
 fi
+set -e
 
-python ./build.py "$@"
+python ./build.py "true"
