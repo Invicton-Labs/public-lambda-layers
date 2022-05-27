@@ -18,7 +18,6 @@ import botocore.config
 import jsonschema
 import jsonref
 
-os.environ['AWS_PROFILE'] = "InvictonLabs_public_lambda_layers_workflow"
 os.environ['AWS_DEFAULT_REGION'] = "ca-central-1"
 
 # A mapping of AWS Lambda architecture names to buildx platform names
