@@ -375,7 +375,7 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
         100, layer_has_existing_public_policy, existing_layers_needing_policy_check, expand_input=True)
 
     all_statements_to_remove = []
-    create_policy_inputs = []
+    create_policy_inputs = {}
     for input_key, existing_policy_datum in existing_policy_data.items():
         has_policy, statements_to_remove = existing_policy_datum
         for stmt in statements_to_remove:
