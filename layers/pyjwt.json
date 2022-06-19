@@ -12,7 +12,7 @@
             "default_image": "public.ecr.aws/lambda/python:3.6",
             "default_layer_target_directory": "/python/lib/python3.6/site-packages",
             "versions": {
-                "8.0.29": {
+                "2.4.0": {
                     "$ref": "#/$defs/version-2.4.0"
                 }
             }
@@ -21,7 +21,7 @@
             "default_image": "public.ecr.aws/lambda/python:3.7",
             "default_layer_target_directory": "/python/lib/python3.7/site-packages",
             "versions": {
-                "8.0.29": {
+                "2.4.0": {
                     "$ref": "#/$defs/version-2.4.0"
                 }
             }
@@ -30,7 +30,7 @@
             "default_image": "public.ecr.aws/lambda/python:3.8",
             "default_layer_target_directory": "/python/lib/python3.8/site-packages",
             "versions": {
-                "8.0.29": {
+                "2.4.0": {
                     "$ref": "#/$defs/version-2.4.0"
                 }
             }
@@ -39,7 +39,7 @@
             "default_image": "public.ecr.aws/lambda/python:3.9",
             "default_layer_target_directory": "/python/lib/python3.9/site-packages",
             "versions": {
-                "8.0.29": {
+                "2.4.0": {
                     "$ref": "#/$defs/version-2.4.0"
                 }
             }

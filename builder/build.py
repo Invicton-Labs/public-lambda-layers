@@ -31,7 +31,7 @@ artifact_bucket_prefix = 'invicton-labs-public-lambda-layers-'
 
 metadata_bucket = "invicton-labs-public-lambda-layers"
 metadata_object = 'layers.json'
-cloudfront_distribution_id = 'E1D65MH18Z0S5M'
+cloudfront_distribution_id = 'E1GH306YC7UXCZ'
 
 # The URL of the license to include in the layer
 license_url = 'https://github.com/Invicton-Labs/public-lambda-layers/blob/main/LAYER-LICENSE.md'
@@ -39,10 +39,18 @@ license_url = 'https://github.com/Invicton-Labs/public-lambda-layers/blob/main/L
 # The URL of the project on GitHub
 project_url = 'https://github.com/Invicton-Labs/public-lambda-layers'
 
+signing_profile_name = 'InvictonLabs_PublicLambdaLayers'
+
 # This is the ID we use for the Lambda layer permission statement
 permission_statement_id = 'public-access'
 permission_action = 'lambda:GetLayerVersion'
 permission_principal = '*'
+
+# These regions don't support Lambda layer code signing
+unsupported_code_signing_regions = [
+    "ap-northeast-3",
+    "ap-southeast-3",
+]
 
 # A temporary directory where we'll be putting our files
 tmpdir = tempfile.TemporaryDirectory()
@@ -51,11 +59,12 @@ regions = None
 s3_clients = None
 lambda_clients = None
 cloudfront = None
+signer = None
 artifact_bucket_names = None
 
 
 def prepare_aws():
-    global regions, s3_clients, lambda_clients, cloudfront, artifact_bucket_names
+    global regions, s3_clients, lambda_clients, cloudfront, signer, artifact_bucket_names
     # Create an EC2 client for getting a list of regions
     ec2 = boto3.client('ec2')
     # Get a list of all supported AWS regions
@@ -85,6 +94,7 @@ def prepare_aws():
         region: boto3.client('lambda', region_name=region, config=client_config) for region in regions
     }
     cloudfront = boto3.client('cloudfront')
+    signer = boto3.client('signer')
     artifact_bucket_names = {
         region: '{}{}'.format(artifact_bucket_prefix, region)
         for region in regions
@@ -377,7 +387,8 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
                 layer_regionals[region] = existing_layer
 
     print('Checking policies for existing layers...')
-    # Check each layer to see if it has an existing public policy
+    # Check each layer to see if it has an existing public policy. This
+    # also populates data about the Content (including signing)
     existing_layer_data = concurrent_func(
         100, get_layer, existing_layers_needing_policy_check, expand_input=True)
 
@@ -386,8 +397,17 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
     for input_key, existing_layer_datum in existing_layer_data.items():
         has_policy, statements_to_remove, content = existing_layer_datum
         inpt = existing_layers_needing_policy_check[input_key]
-        layer_configs[inpt['layer_name']
-                      ]['regional'][inpt['region']]['Content'] = content
+
+        if 'SigningJobArn' not in content and inpt['region'] not in unsupported_code_signing_regions:
+            # If the existing layer isn't signed, and it isn't in a region that doesn't
+            # support signing, don't include it as an existing region layer.
+            # That way, it will be regenerated with a signature.
+            layer_configs[inpt['layer_name']
+                          ]['regional'][inpt['region']] = None
+        else:
+            layer_configs[inpt['layer_name']
+                          ]['regional'][inpt['region']]['Content'] = content
+
         for stmt in statements_to_remove:
             all_statements_to_remove[str(uuid.uuid4())] = stmt
         if not has_policy:
@@ -419,14 +439,20 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
     print('There are {} untracked layers'.format(len(untracked_layers)))
 
 
-def create_layer(region, layer_config):
-    s3_object = '{}-{}.zip'.format(layer_config['name'], str(uuid.uuid4()))
-
-    # Upload the layer to the regional bucket
-    print('Uploading deployment artifact for {} in {}'.format(
+def create_layer(region, layer_config, signed_s3_bucket, signed_s3_key):
+    # Copy the signed artifact to the regional bucket
+    print('Copying signed deployment artifact for {} to {}'.format(
         layer_config['name'], region))
-    s3_clients[region].upload_file(
-        layer_config['archive_path'], artifact_bucket_names[region], s3_object)
+    s3_clients[region].copy(
+        CopySource={
+            'Bucket': signed_s3_bucket,
+            'Key': signed_s3_key,
+        },
+        Bucket=artifact_bucket_names[region],
+        Key=signed_s3_key,
+        SourceClient=s3_clients[os.environ['AWS_DEFAULT_REGION']]
+    )
+
     print('Publishing layer for {} in {}'.format(layer_config['name'], region))
     publish_response = lambda_clients[region].publish_layer_version(
         LayerName=layer_config['name'],
@@ -434,7 +460,7 @@ def create_layer(region, layer_config):
             layer_config['description'], separators=(',', ':')),
         Content={
             'S3Bucket': artifact_bucket_names[region],
-            'S3Key': s3_object,
+            'S3Key': signed_s3_key,
         },
         CompatibleRuntimes=[
             layer_config['runtime']
@@ -524,16 +550,85 @@ def build_layer(layer_config, stream_output, regions_to_publish):
             print(e.stdout.decode())
         raise e
 
+    # If there are no publications to be done, exit
+    if len(regions_to_publish) == 0:
+        return None
+
+    s3_object = 'unsigned/{}/{}.zip'.format(
+        layer_config['name'], str(uuid.uuid4()))
+
+    primary_region_bucket_name = artifact_bucket_names[os.environ['AWS_DEFAULT_REGION']]
+
+    # Upload the layer to the regional bucket
+    print('Uploading unsigned deployment artifact for {}'.format(
+        layer_config['name']))
+    r = s3_clients[os.environ['AWS_DEFAULT_REGION']].upload_file(
+        layer_config['archive_path'], primary_region_bucket_name, s3_object)
+
+    print('Unsigned artifact uploaded. Starting signing job...')
+    requestToken = str(uuid.uuid4())
+    resp = signer.start_signing_job(
+        source={
+            's3': {
+                'bucketName': primary_region_bucket_name,
+                'key': s3_object,
+                'version': 'null',
+            }
+        },
+        destination={
+            's3': {
+                'bucketName': primary_region_bucket_name,
+                'prefix': 'signed/'
+            }
+        },
+        profileName=signing_profile_name,
+        clientRequestToken=requestToken,
+    )
+    signing_job_id = resp['jobId']
+    print('Signing job created ({}). Waiting for it to complete...'.format(
+        signing_job_id))
+
+    signed_object_key = None
+    while True:
+        resp = signer.describe_signing_job(
+            jobId=signing_job_id
+        )
+        status = resp['status']
+        if status == 'Succeeded':
+            signed_object_key = resp['signedObject']['s3']['key']
+            break
+        elif status == 'InProgress':
+            time.sleep(1)
+            continue
+        else:
+            raise Exception(
+                'Signing job failed: {}'.format(resp['statusReason']))
+    print('Signing job {} complete'.format(signing_job_id))
+
     # Determine which regions need the layer to be published
     publications = {
         region: {
             'region': region,
             'layer_config': layer_config,
+            'signed_s3_bucket': primary_region_bucket_name,
+            'signed_s3_key': signed_object_key,
         }
         for region in regions_to_publish
     }
     # Concurrently publish to each region
     concurrent_func(None, create_layer, publications, expand_input=True)
+    return None
+
+
+def upload_s3_metadata_file(path, metadata):
+    s3_clients[os.environ['AWS_DEFAULT_REGION']].upload_fileobj(
+        io.BytesIO(json.dumps(metadata, separators=(',', ':')).encode()),
+        metadata_bucket,
+        path,
+        ExtraArgs={
+            'ContentType': 'application/json',
+        }
+    )
     return None
 
 
@@ -553,22 +648,78 @@ def upload_metadata(layer_configs):
                                                    ][layer_config['runtime']][layer_config['architecture']] = {}
         for region, regional in layer_config['regional'].items():
             metadata[layer_config['package_name']][layer_config['version']][layer_config['runtime']][layer_config['architecture']][region] = {
-                'arn': regional['LayerArn'],
-                'latest_version_arn': regional['LayerVersionArn'],
-                'version': regional['Version'],
+                'description': regional['Description'],
+                'license_info': regional['LicenseInfo'],
+                'layer_arn': regional['LayerArn'],
+                'layer_version_arn': regional['LayerVersionArn'],
+                'layer_version': regional['Version'],
                 'created_date': regional['CreatedDate'],
-                'name': regional['LayerName'],
+                'layer_name': regional['LayerName'],
+                'signing_job_arn': regional['Content'].get('SigningJobArn'),
+                'signing_profile_version_arn': regional['Content'].get('SigningProfileVersionArn'),
+                'source_code_hash': regional['Content']['CodeSha256'],
+                'source_code_size': regional['Content']['CodeSize']
             }
-    document_contents = json.dumps(metadata, separators=(',', ':'))
-    s3_clients['ca-central-1'].upload_fileobj(
-        io.BytesIO(document_contents.encode()),
-        metadata_bucket,
-        metadata_object,
-        ExtraArgs={
-            'ContentType': 'application/json',
+
+    metadata_files = {}
+    package_base_path = "packages"
+    for package_name, package_config in metadata.items():
+        metadata_files[str(uuid.uuid4())] = {
+            'path': '{}/{}.json'.format(package_base_path, package_name),
+            'metadata': package_config | {
+                'package': package_name,
+            }
         }
-    )
-    cloudfront.create_invalidation(
+        for version, version_config in package_config.items():
+            metadata_files[str(uuid.uuid4())] = {
+                'path': '{}/{}/{}.json'.format(package_base_path, package_name, version),
+                'metadata': version_config | {
+                    'package': package_name,
+                    'package_version': version,
+                }
+            }
+            for runtime, runtime_config in version_config.items():
+                metadata_files[str(uuid.uuid4())] = {
+                    'path': '{}/{}/{}/{}.json'.format(package_base_path, package_name, version, runtime),
+                    'metadata': runtime_config | {
+                        'package': package_name,
+                        'package_version': version,
+                        'runtime': runtime,
+                    }
+                }
+                for architecture, architecture_config in runtime_config.items():
+                    metadata_files[str(uuid.uuid4())] = {
+                        'path': '{}/{}/{}/{}/{}.json'.format(package_base_path, package_name, version, runtime, architecture),
+                        'metadata': architecture_config | {
+                            'package': package_name,
+                            'package_version': version,
+                            'runtime': runtime,
+                            'architecture': architecture,
+                        }
+                    }
+                    for region, region_config in architecture_config.items():
+                        metadata_files[str(uuid.uuid4())] = {
+                            'path': '{}/{}/{}/{}/{}/{}.json'.format(package_base_path, package_name, version, runtime, architecture, region),
+                            'metadata': region_config | {
+                                'package': package_name,
+                                'package_version': version,
+                                'runtime': runtime,
+                                'architecture': architecture,
+                                'region': region,
+                            }
+                        }
+
+    # Upload the master layers file with all data
+    metadata_files[str(uuid.uuid4())] = {
+        'path': metadata_object,
+        'metadata': metadata
+    }
+
+    concurrent_func(
+        100, upload_s3_metadata_file, metadata_files, expand_input=True)
+
+    print('Invalidating CloudFront paths...')
+    r = cloudfront.create_invalidation(
         DistributionId=cloudfront_distribution_id,
         InvalidationBatch={
             'Paths': {
@@ -580,6 +731,23 @@ def upload_metadata(layer_configs):
             'CallerReference': str(int(time.time()))
         }
     )
+    invalidation_id = r['Invalidation']['Id']
+
+    while True:
+        response = cloudfront.get_invalidation(
+            DistributionId=cloudfront_distribution_id,
+            Id=invalidation_id
+        )
+        status = response['Invalidation']['Status']
+        if status == 'Completed':
+            break
+        elif status == 'InProgress':
+            time.sleep(2)
+            continue
+        else:
+            raise Exception('Invalidation failed: {}'.format(status))
+
+    print('CloudFront invalidation complete')
 
 
 if __name__ == "__main__":
