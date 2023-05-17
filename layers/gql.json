@@ -57,7 +57,7 @@
     "$defs": {
         "version-3.4.1": {
             "common_instructions_pre": [
-                "RUN pip install gql==3.4.1 --target ."
+                "RUN pip install gql[all]==3.4.1 --target ."
             ],
             "architectures": {
                 "x86_64": {},
