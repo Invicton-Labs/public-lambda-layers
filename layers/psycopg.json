@@ -49,12 +49,30 @@
                     "$ref": "#/$defs/version-3.0.14"
                 }
             }
+        },
+        "python3.13": {
+            "default_image": "public.ecr.aws/lambda/python:3.13",
+            "default_layer_target_directory": "/python/lib/python3.13/site-packages",
+            "versions": {
+                "2.9.10": {
+                    "$ref": "#/$defs/version-2.9.10"
+                },
+            }
         }
     },
     "$defs": {
         "version-2.9.3": {
             "common_instructions_pre": [
                 "RUN pip install psycopg2-binary==2.9.3 --target ."
+            ],
+            "architectures": {
+                "x86_64": {},
+                "arm64": {}
+            }
+        },
+        "version-2.9.10": {
+            "common_instructions_pre": [
+                "RUN pip install psycopg2-binary==2.9.10 --target ."
             ],
             "architectures": {
                 "x86_64": {},
