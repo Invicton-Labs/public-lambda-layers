@@ -50,13 +50,13 @@
                 }
             }
         },
-        "python3.13": {
-            "default_image": "public.ecr.aws/lambda/python:3.13",
-            "default_layer_target_directory": "/python/lib/python3.13/site-packages",
+        "python3.12": {
+            "default_image": "public.ecr.aws/lambda/python:3.12",
+            "default_layer_target_directory": "/python/lib/python3.12/site-packages",
             "versions": {
                 "2.9.10": {
                     "$ref": "#/$defs/version-2.9.10"
-                },
+                }
             }
         }
     },
