@@ -8,18 +8,34 @@ on:
 concurrency: 
   group: single-concurrency
 
+env:
+  AWS_DEFAULT_REGION: "ca-central-1"
+  AWS_ACCOUNT_ID: 216976011668
+
+# This permission must be set because, by default, the GitHub token created
+# for the workflow doesn't have permission to get an ID token.   
+permissions:
+  id-token: write
+
 jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
 
       # Checkout this repository
       - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
         uses: actions/checkout@v4
+
+      # Log into AWS if it's a push
+      - name: AWS Config
+        id: aws-config
+        if: github.event_name == 'push'
+        uses: Invicton-Labs/terraform-aws-github-oidc/action@main
+        with:
+          region: ${{ env.AWS_DEFAULT_REGION }}
+          account_id: ${{ env.AWS_ACCOUNT_ID }}
+          role_name: github-cicd
 
       - name: Setup Python
         uses: actions/setup-python@v5
