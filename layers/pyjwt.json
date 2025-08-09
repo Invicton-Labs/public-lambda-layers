@@ -41,6 +41,57 @@
             "versions": {
                 "2.4.0": {
                     "$ref": "#/$defs/version-2.4.0"
+                },
+                "2.10.1": {
+                    "$ref": "#/$defs/version-2.10.1"
+                }
+            }
+        },
+        "python3.10": {
+            "default_image": "public.ecr.aws/lambda/python:3.10",
+            "default_layer_target_directory": "/python/lib/python3.10/site-packages",
+            "versions": {
+                "2.4.0": {
+                    "$ref": "#/$defs/version-2.4.0"
+                },
+                "2.10.1": {
+                    "$ref": "#/$defs/version-2.10.1"
+                }
+            }
+        },
+        "python3.11": {
+            "default_image": "public.ecr.aws/lambda/python:3.11",
+            "default_layer_target_directory": "/python/lib/python3.11/site-packages",
+            "versions": {
+                "2.4.0": {
+                    "$ref": "#/$defs/version-2.4.0"
+                },
+                "2.10.1": {
+                    "$ref": "#/$defs/version-2.10.1"
+                }
+            }
+        },
+        "python3.12": {
+            "default_image": "public.ecr.aws/lambda/python:3.12",
+            "default_layer_target_directory": "/python/lib/python3.12/site-packages",
+            "versions": {
+                "2.4.0": {
+                    "$ref": "#/$defs/version-2.4.0"
+                },
+                "2.10.1": {
+                    "$ref": "#/$defs/version-2.10.1"
+                }
+            }
+        },
+        "python3.13": {
+            "default_image": "public.ecr.aws/lambda/python:3.13",
+            "default_layer_target_directory": "/python/lib/python3.13/site-packages",
+            "versions": {
+                "2.4.0": {
+                    "$ref": "#/$defs/version-2.4.0"
+                },
+                "2.10.1": {
+                    "$ref": "#/$defs/version-2.10.1"
                 }
             }
         }
@@ -49,6 +100,15 @@
         "version-2.4.0": {
             "common_instructions_pre": [
                 "RUN pip install pyjwt==2.4.0 cryptography==37.0.2 --target ."
+            ],
+            "architectures": {
+                "x86_64": {},
+                "arm64": {}
+            }
+        },
+        "version-2.10.1": {
+            "common_instructions_pre": [
+                "RUN pip install pyjwt==2.10.1 -e .[crypto] --target ."
             ],
             "architectures": {
                 "x86_64": {},
