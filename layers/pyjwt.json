@@ -99,7 +99,7 @@
     "$defs": {
         "version-2.4.0": {
             "common_instructions_pre": [
-                "RUN pip install pyjwt==2.4.0 cryptography==37.0.2 --target ."
+                "RUN pip install pyjwt[crypto]==2.4.0 --target ."
             ],
             "architectures": {
                 "x86_64": {},
@@ -108,7 +108,7 @@
         },
         "version-2.10.1": {
             "common_instructions_pre": [
-                "RUN pip install pyjwt==2.10.1 -e .[crypto] --target ."
+                "RUN pip install pyjwt[crypto]==2.10.1 --target ."
             ],
             "architectures": {
                 "x86_64": {},
