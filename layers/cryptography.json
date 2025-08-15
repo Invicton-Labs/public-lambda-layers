@@ -30,7 +30,7 @@
     "$defs": {
         "version-45.0.6": {
             "common_instructions_pre": [
-                "RUN pip install cryptography --target ."
+                "RUN pip install cryptography==45.0.6 --target ."
             ],
             "architectures": {
                 "x86_64": {},
