@@ -1,0 +1,68 @@
+{
+    "default_layer_source_directory": "/layer",
+    "common_instructions_pre": [
+        "RUN pip3 install --upgrade pip",
+        "WORKDIR /layer"
+    ],
+    "common_instructions_post": [
+        "RUN pip freeze --path . > requirements.txt"
+    ],
+    "runtimes": {
+        "python3.10": {
+            "default_image": "public.ecr.aws/lambda/python:3.10",
+            "default_layer_target_directory": "/python/lib/python3.10/site-packages",
+            "versions": {
+                "5.2.2": {
+                    "$ref": "#/$defs/version-5.2.2"
+                }
+            }
+        },
+        "python3.11": {
+            "default_image": "public.ecr.aws/lambda/python:3.11",
+            "default_layer_target_directory": "/python/lib/python3.11/site-packages",
+            "versions": {
+                "5.2.2": {
+                    "$ref": "#/$defs/version-5.2.2"
+                }
+            }
+        },
+        "python3.12": {
+            "default_image": "public.ecr.aws/lambda/python:3.12",
+            "default_layer_target_directory": "/python/lib/python3.12/site-packages",
+            "versions": {
+                "5.2.2": {
+                    "$ref": "#/$defs/version-5.2.2"
+                }
+            }
+        },
+        "python3.13": {
+            "default_image": "public.ecr.aws/lambda/python:3.13",
+            "default_layer_target_directory": "/python/lib/python3.13/site-packages",
+            "versions": {
+                "5.2.2": {
+                    "$ref": "#/$defs/version-5.2.2"
+                }
+            }
+        },
+        "python3.14": {
+            "default_image": "public.ecr.aws/lambda/python:3.14",
+            "default_layer_target_directory": "/python/lib/python3.14/site-packages",
+            "versions": {
+                "5.2.2": {
+                    "$ref": "#/$defs/version-5.2.2"
+                }
+            }
+        }
+    },
+    "$defs": {
+        "version-5.2.2": {
+            "common_instructions_pre": [
+                "RUN pip install certbot==5.2.2 --target ."
+            ],
+            "architectures": {
+                "x86_64": {},
+                "arm64": {}
+            }
+        }
+    }
+}
