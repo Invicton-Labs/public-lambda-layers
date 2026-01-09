@@ -27,10 +27,10 @@ jobs:
       - name: "Checkout ${{ github.ref }}@${{ github.sha }}"
         uses: actions/checkout@v4
 
-      # Log into AWS if it's a push
+      # Log into with the read-only role if it's a pull request
       - name: AWS Config
-        id: aws-config
-        if: github.event_name != 'push'
+        id: aws-config-read-only
+        if: github.event_name == 'pull_request'
         uses: Invicton-Labs/terraform-aws-github-oidc/action@main
         with:
           region: ${{ env.AWS_DEFAULT_REGION }}
@@ -40,7 +40,7 @@ jobs:
 
       # Log into AWS with the deployment role if it's a push
       - name: AWS Config
-        id: aws-config
+        id: aws-config-deploy
         if: github.event_name == 'push'
         uses: Invicton-Labs/terraform-aws-github-oidc/action@main
         with:
