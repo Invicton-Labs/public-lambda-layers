@@ -30,12 +30,24 @@ jobs:
       # Log into AWS if it's a push
       - name: AWS Config
         id: aws-config
+        if: github.event_name != 'push'
+        uses: Invicton-Labs/terraform-aws-github-oidc/action@main
+        with:
+          region: ${{ env.AWS_DEFAULT_REGION }}
+          account_id: ${{ env.AWS_ACCOUNT_ID }}
+          role_name: github-cicd-read-only
+          session_duration: 7200 # 2 hours, it can take a while to build
+
+      # Log into AWS with the deployment role if it's a push
+      - name: AWS Config
+        id: aws-config
+        if: github.event_name == 'push'
         uses: Invicton-Labs/terraform-aws-github-oidc/action@main
         with:
           region: ${{ env.AWS_DEFAULT_REGION }}
           account_id: ${{ env.AWS_ACCOUNT_ID }}
           role_name: github-cicd
-          session_duration: 21600 # 6 hours, it can take a while to build and deploy everything
+          session_duration: 21600 # 6 hours, it can take a while to build and deploy
 
       - name: Setup Python
         uses: actions/setup-python@v5
