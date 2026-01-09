@@ -36,6 +36,7 @@ jobs:
           region: ${{ env.AWS_DEFAULT_REGION }}
           account_id: ${{ env.AWS_ACCOUNT_ID }}
           role_name: github-cicd
+          session_duration: 21600 # 6 hours, it can take a while to build and deploy everything
 
       - name: Setup Python
         uses: actions/setup-python@v5

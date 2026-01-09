@@ -48,8 +48,8 @@ permission_principal = '*'
 
 # These regions don't support Lambda layer code signing
 unsupported_code_signing_regions = [
-    "ap-northeast-3",
-    "ap-southeast-3",
+    # "ap-northeast-3",
+    # "ap-southeast-3",
 ]
 
 # A temporary directory where we'll be putting our files
@@ -63,6 +63,7 @@ signer = None
 artifact_bucket_names = None
 
 
+# Setts up clients for each region
 def prepare_aws():
     global regions, s3_clients, lambda_clients, cloudfront, signer, artifact_bucket_names
     # Create an EC2 client for getting a list of regions
@@ -101,6 +102,7 @@ def prepare_aws():
     }
 
 
+# Runs a function many times concurrently on a set of inputs
 def concurrent_func(num_workers, worker_func, inputs: dict, expand_input=False):
     err = None
     results = {}
@@ -133,6 +135,7 @@ def concurrent_func(num_workers, worker_func, inputs: dict, expand_input=False):
     return results
 
 
+# Returns a dict of all layers in a region, formatted in a cleaner way
 def get_existing_layers_in_region(region):
     client = lambda_clients[region]
     paginator = client.get_paginator('list_layers').paginate()
@@ -147,6 +150,7 @@ def get_existing_layers_in_region(region):
     return layers
 
 
+# Gets an existing Lambda Layer and associated policy
 def get_layer(region, layer_name, version):
     client = lambda_clients[region]
     statements_to_remove = []
@@ -179,6 +183,7 @@ def get_layer(region, layer_name, version):
     return has_public_policy, statements_to_remove, existing_layer['Content']
 
 
+# Adds a public policy to a Lambda Layer
 def create_public_policy(region, layer_name, version):
     return lambda_clients[region].add_layer_version_permission(
         LayerName=layer_name,
@@ -189,6 +194,7 @@ def create_public_policy(region, layer_name, version):
     )
 
 
+# Removes a given permission from a Lambda Layer
 def remove_policy_statement(region, layer_name, version, statement_id):
     return lambda_clients[region].remove_layer_version_permission(
         LayerName=layer_name,
@@ -197,6 +203,7 @@ def remove_policy_statement(region, layer_name, version, statement_id):
     )
 
 
+# Parses the filesystem to load the layer files with their names
 def get_layer_definitions():
     build_dir = pathlib.Path(__file__).parent.resolve()
     layers_dir = "{}/../layers".format(build_dir)
@@ -240,6 +247,7 @@ def get_layer_definitions():
     return layer_definitions
 
 
+# Parses the layer JSON files to determine all the build configurations that need to be run
 def generate_layer_configs(layer_definitions):
     package_path = '/package.zip'
     layer_configs = {}
@@ -358,10 +366,12 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
     # are missing a public permission policy.
     existing_layers_needing_policy_check = {}
 
+    # Check each unique layer config
     for layer_config in layer_configs.values():
         layer_regionals = {}
         layer_config['regional'] = layer_regionals
 
+        # Check all regions
         for region in regions:
             layer_regionals[region] = None
 
@@ -413,10 +423,8 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
         if not has_policy:
             create_policy_inputs[input_key] = inpt
 
-    print('{} existing layer policy statements must be removed'.format(
-        len(all_statements_to_remove)))
-    print('{} existing layers need public policies'.format(
-        len(create_policy_inputs)))
+    print(f'{len(all_statements_to_remove)} existing layer policy statements must be removed')
+    print(f'{len(create_policy_inputs)} existing layers need public policies')
 
     if len(all_statements_to_remove) > 0:
         print('Removing incorrect statements...')
@@ -439,6 +447,7 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
     print('There are {} untracked layers'.format(len(untracked_layers)))
 
 
+# This deploys a signed layer zip file from S3 to a Lambda Layer in a given region
 def create_layer(region, layer_config, signed_s3_bucket, signed_s3_key):
     # Copy the signed artifact to the regional bucket
     print('Copying signed deployment artifact for {} to {}'.format(
@@ -484,6 +493,7 @@ def create_layer(region, layer_config, signed_s3_bucket, signed_s3_key):
     layer_config['regional'][region] = publish_response
 
 
+# This builds the Docker image, extracts the built layer from it, pushes it to S3, signs it, then publishes it to each region
 def build_layer(layer_config, stream_output, regions_to_publish):
     with open(layer_config['dockerfile_path'], "w", newline='\n') as f:
         # Writing data to a file
@@ -620,6 +630,7 @@ def build_layer(layer_config, stream_output, regions_to_publish):
     return None
 
 
+# This uploads the metadata file for a Layer to the S3 metadata bucket
 def upload_s3_metadata_file(path, metadata):
     s3_clients[os.environ['AWS_DEFAULT_REGION']].upload_fileobj(
         io.BytesIO(json.dumps(metadata, separators=(',', ':')).encode()),
@@ -632,6 +643,8 @@ def upload_s3_metadata_file(path, metadata):
     return None
 
 
+# Once everything is built and deployed, this uploads the metadata files to the S3 metadata bucket,
+# then invalidates the CloudFront distribution to ensure the cache is cleared.
 def upload_metadata(layer_configs):
     metadata = {}
     for layer_config in layer_configs.values():
@@ -752,13 +765,10 @@ def upload_metadata(layer_configs):
 
 if __name__ == "__main__":
     docker_workers = 4
+    is_deploy = len(sys.argv) > 1 and sys.argv[1] == 'true'
 
     layer_definitions = get_layer_definitions()
     layer_configs = generate_layer_configs(layer_definitions)
-
-    # If we're only validating, exit here
-    if len(sys.argv) <= 1 or sys.argv[1] != 'true':
-        exit(0)
 
     prepare_aws()
 
@@ -768,7 +778,7 @@ if __name__ == "__main__":
     # This evaluates all of the existing layers against the desired layers to
     # find differences (existing layers that must be changed, new layers that must be created)
     process_existing_layer_data(layer_configs, existing_layers_by_region)
-
+    
     # This finds all layer configs where a deployment is missing in one or more regions
     build_configs = {
         k: {
@@ -778,7 +788,7 @@ if __name__ == "__main__":
                 region
                 for region, existing_layer in layer_config['regional'].items()
                 if existing_layer is None
-            ]
+            ] if is_deploy else []
         }
         for k, layer_config in layer_configs.items()
         if len([True for existing_layer in layer_config['regional'].values() if existing_layer is None]) > 0
@@ -790,9 +800,19 @@ if __name__ == "__main__":
 
     print('{} layer images must be built'.format(len(build_configs)))
     print('{} regional layers must be published'.format(num_publications))
-    print('Building and publishing...')
+    
+    if is_deploy:
+        print('Building and publishing...')
+    else:
+        print('Building...')
     concurrent_func(docker_workers, build_layer,
                     build_configs, expand_input=True)
+    
+    # If we're only validating, exit here
+    if not is_deploy:
+        print('All builds successful!')
+        exit(0)
+
     print('Uploading metadata document...')
     upload_metadata(layer_configs)
     print('All builds and publications complete!')
