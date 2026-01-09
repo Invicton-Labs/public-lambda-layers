@@ -99,29 +99,31 @@ def prepare_aws():
     cloudfront = boto3.client('cloudfront')
     signer = boto3.client('signer')
     artifact_bucket_names = {
-        region: '{}{}'.format(artifact_bucket_prefix, region)
+        region: f'{artifact_bucket_prefix}{region}'
         for region in regions
     }
 
     no_signing_regions = []
+    no_lambda_signing_regions = []
     for region in regions:
-        # try:
-        regional_signer = boto3.client("signer", region_name=region)
-        paginator = regional_signer.get_paginator("list_signing_platforms")
+        try:
+            regional_signer = boto3.client("signer", region_name=region)
+            paginator = regional_signer.get_paginator("list_signing_platforms")
 
-        platform_ids = set()
-        for page in paginator.paginate():
-            for p in page.get("platforms", []):
-                if "platformId" in p:
-                    platform_ids.add(p["platformId"])
+            platform_ids = set()
+            for page in paginator.paginate():
+                for p in page.get("platforms", []):
+                    if "platformId" in p:
+                        platform_ids.add(p["platformId"])
 
-        if lambda_signing_platform_id not in platform_ids:
+            if lambda_signing_platform_id not in platform_ids:
+                no_lambda_signing_regions.append(region)
+
+        except EndpointConnectionError:
             no_signing_regions.append(region)
 
-        # except (ClientError, EndpointConnectionError) as e:
-        #     notes[region] = f"{type(e).__name__}: {e}"
-
     print(f"Non-signing regions: {json.dumps(no_signing_regions)}")
+    print(f"Non-Lambda-signing regions: {json.dumps(no_lambda_signing_regions)}")
 
 
 # Runs a function many times concurrently on a set of inputs
