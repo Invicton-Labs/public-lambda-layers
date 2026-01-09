@@ -341,14 +341,14 @@ def generate_layer_configs(layer_definitions):
                         'common_instructions_post', []))
 
                     dockerfile_lines.extend([
-                        'FROM alpine:latest',
+                        'FROM alpine:3.20.8',
                         'RUN apk add --no-cache zip',
                         'COPY --from=build_image "{}" "/layer/{}"'.format(
                             layer_source_directory, layer_target_directory.lstrip('/')),
+                        'WORKDIR /layer',
                         # This command will ignore extra attributes such as file times
                         # This is so that the output file has the same hash as long as the contents
                         # of the contained files remain the same
-                        'WORKDIR /layer',
                         'RUN TZ=UTC zip -r -X "{}" ./*'.format(package_path)
                     ])
 
