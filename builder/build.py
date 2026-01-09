@@ -15,6 +15,7 @@ import time
 import sys
 import boto3
 import botocore.config
+from botocore.exceptions import ClientError, EndpointConnectionError
 import jsonschema
 import jsonref
 
@@ -32,6 +33,7 @@ artifact_bucket_prefix = 'invicton-labs-public-lambda-layers-'
 metadata_bucket = "invicton-labs-public-lambda-layers"
 metadata_object = 'layers.json'
 cloudfront_distribution_id = 'E1GH306YC7UXCZ'
+lambda_signing_platform_id = "AWSLambda-SHA384-ECDSA"
 
 # The URL of the license to include in the layer
 license_url = 'https://github.com/Invicton-Labs/public-lambda-layers/blob/main/LAYER-LICENSE.md'
@@ -65,7 +67,7 @@ artifact_bucket_names = None
 
 # Setts up clients for each region
 def prepare_aws():
-    global regions, s3_clients, lambda_clients, cloudfront, signer, artifact_bucket_names
+    global regions, s3_clients, lambda_clients, cloudfront, signer, artifact_bucket_names, unsupported_code_signing_regions
     # Create an EC2 client for getting a list of regions
     ec2 = boto3.client('ec2')
     # Get a list of all supported AWS regions
@@ -100,6 +102,26 @@ def prepare_aws():
         region: '{}{}'.format(artifact_bucket_prefix, region)
         for region in regions
     }
+
+    no_signing_regions = []
+    for region in regions:
+        # try:
+        regional_signer = boto3.client("signer", region_name=region)
+        paginator = regional_signer.get_paginator("list_signing_platforms")
+
+        platform_ids = set()
+        for page in paginator.paginate():
+            for p in page.get("platforms", []):
+                if "platformId" in p:
+                    platform_ids.add(p["platformId"])
+
+        if lambda_signing_platform_id not in platform_ids:
+            no_signing_regions.append(region)
+
+        # except (ClientError, EndpointConnectionError) as e:
+        #     notes[region] = f"{type(e).__name__}: {e}"
+
+    print(f"Non-signing regions: {json.dumps(no_signing_regions)}")
 
 
 # Runs a function many times concurrently on a set of inputs
