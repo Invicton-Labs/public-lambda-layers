@@ -385,7 +385,7 @@ def generate_layer_configs(layer_definitions):
     return layer_configs
 
 
-def process_existing_layer_data(layer_configs, existing_layers_by_region):
+def process_existing_layer_data(is_deploy, layer_configs, existing_layers_by_region):
     # This is for tracking all existing layers that match a desired layer, but
     # are missing a public permission policy.
     existing_layers_needing_policy_check = {}
@@ -450,13 +450,13 @@ def process_existing_layer_data(layer_configs, existing_layers_by_region):
     print(f'{len(all_statements_to_remove)} existing layer policy statements must be removed')
     print(f'{len(create_policy_inputs)} existing layers need public policies')
 
-    if len(all_statements_to_remove) > 0:
+    if is_deploy and len(all_statements_to_remove) > 0:
         print('Removing incorrect statements...')
         concurrent_func(100, remove_policy_statement,
                         all_statements_to_remove, expand_input=True)
         print('Done!')
 
-    if len(create_policy_inputs) > 0:
+    if is_deploy and len(create_policy_inputs) > 0:
         print('Creating public policies for existing layers...')
         concurrent_func(100, create_public_policy,
                         create_policy_inputs, expand_input=True)
@@ -801,7 +801,7 @@ if __name__ == "__main__":
 
     # This evaluates all of the existing layers against the desired layers to
     # find differences (existing layers that must be changed, new layers that must be created)
-    process_existing_layer_data(layer_configs, existing_layers_by_region)
+    process_existing_layer_data(is_deploy, layer_configs, existing_layers_by_region)
     
     # This finds all layer configs where a deployment is missing in one or more regions
     build_configs = {
