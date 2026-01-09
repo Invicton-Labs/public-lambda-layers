@@ -532,7 +532,7 @@ def build_layer(layer_config, stream_output, regions_to_publish):
     # Build the image and load it into the local registry
     print('Building layer {}...'.format(layer_config['name']))
     try:
-        r = subprocess.run(['docker', 'buildx', 'build', '--platform', layer_config['platform'],
+        r = subprocess.run(['docker', 'buildx', 'build', '--progress', 'plain', '--platform', layer_config['platform'],
                             '--load', '-t', layer_config['image_tag'], '-f', layer_config['dockerfile_path'], '.'], check=True, stderr=stderr, stdout=stdout)
     except subprocess.CalledProcessError as e:
         if e.stdout is not None:
