@@ -30,7 +30,6 @@ jobs:
       # Log into AWS if it's a push
       - name: AWS Config
         id: aws-config
-        if: github.event_name == 'push'
         uses: Invicton-Labs/terraform-aws-github-oidc/action@main
         with:
           region: ${{ env.AWS_DEFAULT_REGION }}
