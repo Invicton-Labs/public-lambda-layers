@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Public Lambeda Layers - Build",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/builder/build.py",
+            "cwd": "${fileDirname}",
+            "console": "integratedTerminal",
+            "env": {
+                "AWS_REGION": "ca-central-1",
+                "AWS_PROFILE": "InvictonLabs_workloads_public_lambda_layers_read_only"
+            }
+        },
+        {
+            "name": "Public Lambeda Layers - Build & Publish",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/builder/build.py",
+            "args": [
+                "true"
+            ],
+            "cwd": "${fileDirname}",
+            "console": "integratedTerminal",
+            "env": {
+                "AWS_REGION": "ca-central-1",
+                "AWS_PROFILE": "InvictonLabs_workloads_public_lambda_layers"
+            }
+        },
+    ]
+}

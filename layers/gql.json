@@ -8,42 +8,6 @@
         "RUN pip freeze --path . > requirements.txt"
     ],
     "runtimes": {
-        "python3.6": {
-            "default_image": "public.ecr.aws/lambda/python:3.6",
-            "default_layer_target_directory": "/python/lib/python3.6/site-packages",
-            "versions": {
-                "3.4.1": {
-                    "$ref": "#/$defs/version-3.4.1"
-                }
-            }
-        },
-        "python3.7": {
-            "default_image": "public.ecr.aws/lambda/python:3.7",
-            "default_layer_target_directory": "/python/lib/python3.7/site-packages",
-            "versions": {
-                "3.4.1": {
-                    "$ref": "#/$defs/version-3.4.1"
-                }
-            }
-        },
-        "python3.8": {
-            "default_image": "public.ecr.aws/lambda/python:3.8",
-            "default_layer_target_directory": "/python/lib/python3.8/site-packages",
-            "versions": {
-                "3.4.1": {
-                    "$ref": "#/$defs/version-3.4.1"
-                }
-            }
-        },
-        "python3.9": {
-            "default_image": "public.ecr.aws/lambda/python:3.9",
-            "default_layer_target_directory": "/python/lib/python3.9/site-packages",
-            "versions": {
-                "3.4.1": {
-                    "$ref": "#/$defs/version-3.4.1"
-                }
-            }
-        },
         "python3.10": {
             "default_image": "public.ecr.aws/lambda/python:3.10",
             "default_layer_target_directory": "/python/lib/python3.10/site-packages",
