@@ -57,7 +57,7 @@
     "$defs": {
         "version-2.3.3": {
             "common_instructions_pre": [
-                "RUN pip install numpy==2.3.3 --target ."
+                "RUN pip install pandas==2.3.3 --only-binary=:all: --target ."
             ],
             "architectures": {
                 "x86_64": {},
